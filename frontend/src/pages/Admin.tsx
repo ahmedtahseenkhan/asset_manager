@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminUsers, setUserStatus, getAuditLogs, runRetention } from '../api';
-import { Users, ScrollText, Shield, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Trash2, Play } from 'lucide-react';
+import { Users, ScrollText, Shield, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 type Tab = 'users' | 'audit';

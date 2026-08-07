@@ -12,8 +12,10 @@ from backend.config import settings
 from backend.database import engine, Base
 from backend.connectors.registry import registry
 from backend.services.scheduler_service import scheduler
+from backend.licensing.state import license_manager
+from backend.licensing.enforcement import LicenseEnforcementMiddleware
 
-from backend.routers import auth, devices, connectors, dashboard, admin
+from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets
 
 configure_json_logging(debug=settings.debug)
 logger = logging.getLogger(__name__)
@@ -24,6 +26,8 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database initialized.")
+
+    license_manager.reload()
 
     registry.discover_and_register()
     scheduler.start()
@@ -44,6 +48,9 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Order matters: CORS must be added LAST so it wraps license enforcement and
+# 403 degradation responses still carry CORS headers.
+app.add_middleware(LicenseEnforcementMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -57,6 +64,8 @@ app.include_router(devices.router, prefix="/api")
 app.include_router(connectors.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(license_router.router, prefix="/api")
+app.include_router(assets.router, prefix="/api")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

@@ -43,6 +43,9 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 @router.post("/register", response_model=APIResponse[UserOut])
 async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    from backend.licensing.enforcement import check_user_limit
+    await check_user_limit(db)
+
     result = await db.execute(select(User).where((User.username == user_in.username) | (User.email == user_in.email)))
     if result.scalars().first():
         raise HTTPException(status_code=400, detail="Username or email already registered")

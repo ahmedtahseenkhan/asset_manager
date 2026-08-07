@@ -1,4 +1,3 @@
-import React, { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Laptop, Plug, LogOut, Shield, ShieldAlert, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

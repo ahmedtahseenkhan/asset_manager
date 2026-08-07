@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     jwt_expiry_minutes: int = 480
     encryption_key: str | None = None
 
+    # Application license (offline-validated, Ed25519-signed file)
+    license_file: str = str(_BACKEND_ROOT / "license.lic")
+
     # CORS (when debug=True, local Vite ports below are merged in automatically)
     cors_origins: List[str] = [
         "http://localhost:5173",

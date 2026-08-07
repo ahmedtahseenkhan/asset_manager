@@ -3,10 +3,20 @@ from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
 
+ALLOWED_ROLES = {"admin", "asset_manager", "viewer", "user"}  # "user" = legacy alias for viewer
+
+
 class UserBase(BaseModel):
     username: str
     email: str
-    role: str = "user"
+    role: str = "viewer"
+
+    @field_validator("role")
+    @classmethod
+    def role_allowed(cls, v: str) -> str:
+        if v not in ALLOWED_ROLES:
+            raise ValueError(f"role must be one of {sorted(ALLOWED_ROLES)}")
+        return v
 
     @field_validator("email")
     @classmethod

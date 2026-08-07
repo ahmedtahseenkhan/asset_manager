@@ -40,3 +40,23 @@ def require_admin(current_user: User = Depends(get_current_user)):
             detail="Requires administrator privileges"
         )
     return current_user
+
+
+# Role hierarchy: viewer (and legacy "user") < asset_manager < admin.
+# Higher roles implicitly hold all lower-role permissions.
+ROLE_LEVELS = {"viewer": 1, "user": 1, "asset_manager": 2, "admin": 3}
+
+
+def require_role(min_role: str):
+    """Dependency factory: require_role("asset_manager") allows managers and admins."""
+    required = ROLE_LEVELS[min_role]
+
+    def _check(current_user: User = Depends(get_current_user)) -> User:
+        if ROLE_LEVELS.get(current_user.role, 0) < required:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires '{min_role}' role or higher",
+            )
+        return current_user
+
+    return _check
