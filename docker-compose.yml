@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: am_postgres
+    ports:
+      - "5454:5432"
+    environment:
+      POSTGRES_DB: asset_manager
+      POSTGRES_USER: am_admin
+      POSTGRES_PASSWORD: am_secret_2024
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U am_admin -d asset_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  samba-ad:
+    image: nowsci/samba-domain
+    container_name: am_samba
+    hostname: dc1
+    privileged: true
+    ports:
+      - "389:389"
+      - "636:636"
+    environment:
+      DOMAIN: TESTLAB.LOCAL
+      DOMAINPASS: "P@ssw0rd123"
+      DNSFORWARDER: 8.8.8.8
+      HOSTIP: "127.0.0.1"
+    volumes:
+      - samba_data:/var/lib/samba
+      - samba_etc:/etc/samba/external
+
+volumes:
+  pg_data:
+  samba_data:
+  samba_etc:

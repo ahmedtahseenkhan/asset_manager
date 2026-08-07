@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+backend/venv/
+backend/.venv/
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env & secrets — commit .env.example instead
+backend/.env
+*.pem.private
+
+# License files are per-deployment artifacts (dev license is committed explicitly)
+# backend/license.lic is committed for dev convenience
+
+# OS / editor
+.DS_Store
+*.log
