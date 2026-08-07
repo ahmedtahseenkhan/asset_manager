@@ -82,3 +82,67 @@ export interface CoverageGapSummary {
   missing_per_source: { source: string; count: number }[];
   gaps: CoverageGapDevice[];
 }
+
+// ── ITAM: application license ─────────────────────────
+export interface LicenseStatus {
+  status: 'valid' | 'grace' | 'expired' | 'invalid' | 'missing';
+  operational: boolean;
+  reason: string;
+  customer: string | null;
+  license_id: string | null;
+  issued_at: string | null;
+  expires_at: string | null;
+  grace_days: number | null;
+  max_assets: number | null;
+  max_users: number | null;
+  modules: string[];
+  usage: { users?: number; assets?: number };
+}
+
+// ── ITAM: managed assets ──────────────────────────────
+export interface Asset {
+  id: number;
+  asset_tag: string;
+  name: string;
+  category: 'hardware' | 'software' | 'cloud' | 'peripheral';
+  asset_type: string | null;
+  lifecycle_state: string;
+  serial_number: string | null;
+  vendor: string | null;
+  model: string | null;
+  location: string | null;
+  department: string | null;
+  assigned_to: number | null;
+  assignee_username: string | null;
+  purchase_date: string | null;
+  purchase_cost: string | null;
+  currency: string;
+  warranty_end: string | null;
+  custom_fields: Record<string, unknown>;
+  notes: string | null;
+  device_id: number | null;
+  device_hostname: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LifecycleEvent {
+  id: number;
+  from_state: string | null;
+  to_state: string;
+  actor: string | null;
+  note: string | null;
+  occurred_at: string;
+}
+
+export interface AssetDetail extends Asset {
+  lifecycle_events: LifecycleEvent[];
+  allowed_transitions: string[];
+}
+
+export interface AssetListOut {
+  items: Asset[];
+  total: number;
+  page: number;
+  size: number;
+}

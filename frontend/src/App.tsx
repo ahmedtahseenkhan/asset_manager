@@ -10,6 +10,9 @@ import Connectors from './pages/Connectors';
 import CoverageGaps from './pages/CoverageGaps';
 import DeviceDetail from './pages/DeviceDetail';
 import Admin from './pages/Admin';
+import Assets from './pages/Assets';
+import AssetDetail from './pages/AssetDetail';
+import License from './pages/License';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +44,9 @@ function AppRoutes() {
       <Route path="/devices/:id" element={<ProtectedRoute><DeviceDetail /></ProtectedRoute>} />
       <Route path="/coverage-gaps" element={<ProtectedRoute><CoverageGaps /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+      <Route path="/assets/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+      <Route path="/license" element={<ProtectedRoute><License /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

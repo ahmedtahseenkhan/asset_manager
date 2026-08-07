@@ -1,5 +1,8 @@
 import { apiClient } from './client';
-import type { DashboardSummary, CoverageGapSummary, APIResponse, DeviceListOut, Device, ConnectorStatus } from '../types';
+import type {
+  DashboardSummary, CoverageGapSummary, APIResponse, DeviceListOut, Device, ConnectorStatus,
+  LicenseStatus, Asset, AssetDetail, AssetListOut,
+} from '../types';
 
 export const getDashboardSummary = () => {
   return apiClient.get<never, APIResponse<DashboardSummary>>('/dashboard/summary');
@@ -46,3 +49,34 @@ export const testConnectorConnection = (name: string, config: any) => {
 export const triggerConnectorSync = (name: string) => {
   return apiClient.post<never, APIResponse<string>>(`/connectors/${name}/sync`);
 };
+
+// ── ITAM: license ─────────────────────────────────────
+export const getLicenseStatus = () =>
+  apiClient.get<never, APIResponse<LicenseStatus>>('/license/status');
+
+export const uploadLicense = (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return apiClient.post<never, APIResponse<any>>('/license/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+// ── ITAM: assets ──────────────────────────────────────
+export const getAssets = (page = 1, size = 50, params = {}) =>
+  apiClient.get<never, APIResponse<AssetListOut>>('/assets', { params: { page, size, ...params } });
+
+export const getAssetById = (id: number) =>
+  apiClient.get<never, APIResponse<AssetDetail>>(`/assets/${id}`);
+
+export const createAsset = (data: Partial<Asset>) =>
+  apiClient.post<never, APIResponse<AssetDetail>>('/assets', data);
+
+export const updateAsset = (id: number, data: Partial<Asset>) =>
+  apiClient.patch<never, APIResponse<AssetDetail>>(`/assets/${id}`, data);
+
+export const transitionAsset = (id: number, to_state: string, note?: string) =>
+  apiClient.post<never, APIResponse<AssetDetail>>(`/assets/${id}/transition`, { to_state, note });
+
+export const deleteAsset = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/assets/${id}`);
