@@ -186,7 +186,7 @@ export default function AssetDetail() {
   const money = asset.purchase_cost ? `${asset.purchase_cost} ${asset.currency}` : null;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/assets" className="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
