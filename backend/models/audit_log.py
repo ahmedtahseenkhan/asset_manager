@@ -15,3 +15,7 @@ class AuditLog(Base):
     detail        = Column(JSON, nullable=True)                  # arbitrary extra context
     ip_address    = Column(String(64),  nullable=True)
     created_at    = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    # Tamper-evident hash chain: row_hash = sha256(prev_hash ‖ canonical(row)).
+    # Verified via GET /api/admin/audit-verify.
+    prev_hash     = Column(String(64), nullable=True)
+    row_hash      = Column(String(64), nullable=True, index=True)

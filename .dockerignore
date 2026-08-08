@@ -1,0 +1,11 @@
+.git
+backend/venv
+backend/.venv
+backend/__pycache__
+**/__pycache__
+frontend/node_modules
+frontend/dist
+tools/license-signer
+deploy/docker/.env
+*.log
+.DS_Store

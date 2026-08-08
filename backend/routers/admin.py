@@ -113,6 +113,17 @@ async def set_user_status(
                        message=f"User {'activated' if active else 'deactivated'}")
 
 
+# ── Audit chain integrity ─────────────────────────────────────────────────────
+
+@router.get("/audit-verify", response_model=APIResponse[dict])
+async def verify_audit_chain(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Recompute the audit-log hash chain and report tampering, if any."""
+    return APIResponse(data=await AuditService.verify_chain(db))
+
+
 # ── Retention ─────────────────────────────────────────────────────────────────
 
 @router.post("/retention/run", response_model=APIResponse[dict])

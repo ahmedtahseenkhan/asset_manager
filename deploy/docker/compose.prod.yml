@@ -1,0 +1,59 @@
+# IT Asset Manager — production deployment
+#
+#   1. cd deploy/docker
+#   2. cp env.example .env          (or run ../install/install.sh which does this)
+#   3. docker compose -f compose.prod.yml up -d --build
+#
+# TLS: terminate at your existing reverse proxy / load balancer, or bind a
+# certificate into the web container — see docs/ADMIN_GUIDE.md.
+
+name: itam
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-asset_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-itam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-itam} -d ${POSTGRES_DB:-asset_manager}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-itam}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_manager}
+      JWT_SECRET: ${JWT_SECRET:?set in .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set in .env}
+      LICENSE_FILE: /data/license.lic
+      DEBUG: "false"
+      APP_NAME: ${APP_NAME:-IT Asset Manager}
+      CORS_ORIGINS: '[]'   # same-origin via nginx; add origins only if exposing the API directly
+    volumes:
+      - api_data:/data     # holds the uploaded license file
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+
+volumes:
+  pg_data:
+  api_data:

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Lock, User as UserIcon } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../api/client';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -20,7 +21,7 @@ export default function Login() {
       formData.append('username', username);
       formData.append('password', password);
 
-      const res = await axios.post('http://localhost:8000/api/auth/login', formData, {
+      const res = await axios.post(`${API_BASE}/auth/login`, formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 

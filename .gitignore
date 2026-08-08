@@ -19,3 +19,7 @@ backend/.env
 # OS / editor
 .DS_Store
 *.log
+
+# Production deployment secrets & backups
+deploy/docker/.env
+deploy/backup/backups/
