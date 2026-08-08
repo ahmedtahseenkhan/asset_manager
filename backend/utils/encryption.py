@@ -61,3 +61,27 @@ class EncryptedJSON(TypeDecorator):
                 return json.loads(value)
             except Exception:
                 return {}
+
+
+class EncryptedString(TypeDecorator):
+    """Encrypts a plain string column (e.g. license keys) using Fernet."""
+    impl = String
+    cache_ok = True
+
+    def __init__(self):
+        super().__init__()
+        self.fernet = _load_fernet()
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return self.fernet.encrypt(value.encode("utf-8")).decode("utf-8")
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        try:
+            return self.fernet.decrypt(value.encode("utf-8")).decode("utf-8")
+        except InvalidToken:
+            logger.warning("Failed to decrypt EncryptedString value")
+            return None

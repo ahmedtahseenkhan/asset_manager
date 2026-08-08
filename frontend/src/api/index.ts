@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   DashboardSummary, CoverageGapSummary, APIResponse, DeviceListOut, Device, ConnectorStatus,
   LicenseStatus, Asset, AssetDetail, AssetListOut, UnlinkedDevice,
+  Contract, ContractDetail, ContractListOut, EntitlementDetail, EntitlementListOut,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -96,3 +97,47 @@ export const addRelationship = (assetId: number, target_asset_id: number, relati
 
 export const removeRelationship = (assetId: number, relId: number) =>
   apiClient.delete<never, APIResponse<AssetDetail>>(`/assets/${assetId}/relationships/${relId}`);
+
+// ── ITAM: contracts ───────────────────────────────────
+export const getContracts = (page = 1, size = 50, params = {}) =>
+  apiClient.get<never, APIResponse<ContractListOut>>('/contracts', { params: { page, size, ...params } });
+
+export const getContractById = (id: number) =>
+  apiClient.get<never, APIResponse<ContractDetail>>(`/contracts/${id}`);
+
+export const createContract = (data: Partial<Contract>) =>
+  apiClient.post<never, APIResponse<ContractDetail>>('/contracts', data);
+
+export const updateContract = (id: number, data: Partial<Contract>) =>
+  apiClient.patch<never, APIResponse<ContractDetail>>(`/contracts/${id}`, data);
+
+export const deleteContract = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/contracts/${id}`);
+
+export const attachContractAsset = (id: number, asset_id: number) =>
+  apiClient.post<never, APIResponse<ContractDetail>>(`/contracts/${id}/assets`, { asset_id });
+
+export const detachContractAsset = (id: number, assetId: number) =>
+  apiClient.delete<never, APIResponse<ContractDetail>>(`/contracts/${id}/assets/${assetId}`);
+
+// ── ITAM: entitlements ────────────────────────────────
+export const getEntitlements = (page = 1, size = 50, params = {}) =>
+  apiClient.get<never, APIResponse<EntitlementListOut>>('/entitlements', { params: { page, size, ...params } });
+
+export const getEntitlementById = (id: number) =>
+  apiClient.get<never, APIResponse<EntitlementDetail>>(`/entitlements/${id}`);
+
+export const createEntitlement = (data: Record<string, unknown>) =>
+  apiClient.post<never, APIResponse<EntitlementDetail>>('/entitlements', data);
+
+export const updateEntitlement = (id: number, data: Record<string, unknown>) =>
+  apiClient.patch<never, APIResponse<EntitlementDetail>>(`/entitlements/${id}`, data);
+
+export const deleteEntitlement = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/entitlements/${id}`);
+
+export const assignEntitlement = (id: number, target: { asset_id?: number; user_id?: number }) =>
+  apiClient.post<never, APIResponse<EntitlementDetail>>(`/entitlements/${id}/assign`, target);
+
+export const unassignEntitlement = (id: number, assignmentId: number) =>
+  apiClient.delete<never, APIResponse<EntitlementDetail>>(`/entitlements/${id}/assign/${assignmentId}`);

@@ -171,3 +171,73 @@ export interface AssetRelationships {
   outgoing: RelationshipEdge[];
   incoming: RelationshipEdge[];
 }
+
+// ── ITAM: contracts & entitlements ────────────────────
+export interface Contract {
+  id: number;
+  name: string;
+  contract_type: 'lease' | 'support' | 'maintenance' | 'subscription';
+  vendor: string | null;
+  reference_no: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  notice_days: number;
+  cost: string | null;
+  currency: string;
+  auto_renews: boolean;
+  custom_fields: Record<string, unknown>;
+  asset_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContractDetail extends Contract {
+  assets: { id: number; asset_tag: string; name: string; category: string; lifecycle_state: string }[];
+  entitlements: { id: number; product: string; license_model: string; seats_purchased: number | null; expires_on: string | null }[];
+}
+
+export interface ContractListOut {
+  items: Contract[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface Entitlement {
+  id: number;
+  product: string;
+  vendor: string | null;
+  license_model: 'per_seat' | 'per_device' | 'site' | 'subscription';
+  seats_purchased: number | null;
+  seats_used: number;
+  has_key: boolean;
+  key_hint: string | null;
+  contract_id: number | null;
+  contract_name: string | null;
+  expires_on: string | null;
+  custom_fields: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EntitlementAssignment {
+  id: number;
+  asset_id: number | null;
+  asset_tag: string | null;
+  asset_name: string | null;
+  user_id: number | null;
+  username: string | null;
+  assigned_at: string;
+}
+
+export interface EntitlementDetail extends Entitlement {
+  assignments: EntitlementAssignment[];
+  license_key: string | null;
+}
+
+export interface EntitlementListOut {
+  items: Entitlement[];
+  total: number;
+  page: number;
+  size: number;
+}

@@ -14,6 +14,8 @@ import Assets from './pages/Assets';
 import AssetDetail from './pages/AssetDetail';
 import License from './pages/License';
 import Reconciliation from './pages/Reconciliation';
+import Contracts from './pages/Contracts';
+import Entitlements from './pages/Entitlements';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,8 @@ function AppRoutes() {
       <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
       <Route path="/assets/reconcile" element={<ProtectedRoute><Reconciliation /></ProtectedRoute>} />
       <Route path="/assets/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+      <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
+      <Route path="/entitlements" element={<ProtectedRoute><Entitlements /></ProtectedRoute>} />
       <Route path="/license" element={<ProtectedRoute><License /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Laptop, Plug, LogOut, Shield, ShieldAlert, Settings, Boxes, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Laptop, Plug, LogOut, Shield, ShieldAlert, Settings, Boxes, KeyRound, FileText, KeySquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
 
@@ -10,6 +10,8 @@ function Sidebar() {
     { to: '/',              label: 'Dashboard',     icon: LayoutDashboard, adminOnly: false },
     { to: '/assets',        label: 'Assets',         icon: Boxes,           adminOnly: false },
     { to: '/devices',       label: 'Devices',        icon: Laptop,          adminOnly: false },
+    { to: '/contracts',     label: 'Contracts',      icon: FileText,        adminOnly: false },
+    { to: '/entitlements',  label: 'Entitlements',   icon: KeySquare,       adminOnly: false },
     { to: '/coverage-gaps', label: 'Coverage Gaps',  icon: ShieldAlert,     adminOnly: false },
     { to: '/connectors',    label: 'Connectors',     icon: Plug,            adminOnly: true  },
     { to: '/license',       label: 'License',        icon: KeyRound,        adminOnly: true  },
