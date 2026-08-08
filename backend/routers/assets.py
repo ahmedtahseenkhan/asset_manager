@@ -14,6 +14,7 @@ from backend.schemas.asset import (
     AssetOut,
     AssetUpdate,
     LifecycleTransition,
+    RelationshipCreate,
 )
 from backend.schemas.common import APIResponse
 from backend.services.asset_service import AssetService
@@ -97,6 +98,81 @@ async def transition_asset(
                            detail={"to_state": body.to_state, "note": body.note})
     await db.commit()
     return APIResponse(data=AssetService.serialize_detail(asset), message="State updated")
+
+
+# ── CMDB relationships (separate licensed module) ─────────────────────────
+
+@router.post("/{asset_id}/relationships", response_model=APIResponse[AssetDetailOut],
+             dependencies=[require_module("cmdb")])
+async def add_relationship(
+    asset_id: int,
+    body: RelationshipCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    manager: User = Depends(require_role("asset_manager")),
+):
+    from fastapi import HTTPException
+    from sqlalchemy.exc import IntegrityError
+
+    from backend.models.asset_relationship import AssetRelationship
+
+    if body.target_asset_id == asset_id:
+        raise HTTPException(400, "An asset cannot relate to itself")
+    source = await AssetService.get_asset(db, asset_id)
+    target = await AssetService.get_asset(db, body.target_asset_id)
+
+    db.add(AssetRelationship(
+        source_asset_id=asset_id,
+        target_asset_id=body.target_asset_id,
+        relationship_type=body.relationship_type,
+        created_by=manager.id,
+    ))
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(400, "This relationship already exists")
+
+    await AuditService.log(db, request, manager, "asset.relationship_added",
+                           resource_type="asset", resource_id=source.asset_tag,
+                           detail={"type": body.relationship_type,
+                                   "target": target.asset_tag})
+    await db.commit()
+    asset = await AssetService.get_asset(db, asset_id)
+    return APIResponse(data=AssetService.serialize_detail(asset), message="Relationship added")
+
+
+@router.delete("/{asset_id}/relationships/{rel_id}", response_model=APIResponse[AssetDetailOut],
+               dependencies=[require_module("cmdb")])
+async def remove_relationship(
+    asset_id: int,
+    rel_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    manager: User = Depends(require_role("asset_manager")),
+):
+    from fastapi import HTTPException
+    from sqlalchemy import select
+
+    from backend.models.asset_relationship import AssetRelationship
+
+    rel = (await db.execute(
+        select(AssetRelationship).where(AssetRelationship.id == rel_id)
+    )).scalars().first()
+    # Either endpoint of the edge may remove it.
+    if not rel or asset_id not in (rel.source_asset_id, rel.target_asset_id):
+        raise HTTPException(404, "Relationship not found on this asset")
+
+    detail = {"type": rel.relationship_type,
+              "source_id": rel.source_asset_id, "target_id": rel.target_asset_id}
+    await db.delete(rel)
+    asset = await AssetService.get_asset(db, asset_id)
+    await AuditService.log(db, request, manager, "asset.relationship_removed",
+                           resource_type="asset", resource_id=asset.asset_tag,
+                           detail=detail)
+    await db.commit()
+    asset = await AssetService.get_asset(db, asset_id)
+    return APIResponse(data=AssetService.serialize_detail(asset), message="Relationship removed")
 
 
 @router.delete("/{asset_id}", response_model=APIResponse[bool])

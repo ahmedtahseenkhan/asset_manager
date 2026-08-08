@@ -15,7 +15,7 @@ from backend.services.scheduler_service import scheduler
 from backend.licensing.state import license_manager
 from backend.licensing.enforcement import LicenseEnforcementMiddleware
 
-from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets
+from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets, reconciliation
 
 configure_json_logging(debug=settings.debug)
 logger = logging.getLogger(__name__)
@@ -66,6 +66,7 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(license_router.router, prefix="/api")
 app.include_router(assets.router, prefix="/api")
+app.include_router(reconciliation.router, prefix="/api")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

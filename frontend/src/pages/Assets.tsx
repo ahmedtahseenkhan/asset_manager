@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssets, createAsset, updateAsset } from '../api';
+import { getAssets, createAsset, updateAsset, getUnlinkedDevices } from '../api';
 import type { Asset } from '../types';
-import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, X } from 'lucide-react';
+import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, X, GitMerge } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -93,6 +93,13 @@ export default function Assets() {
   const total = res?.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / size));
 
+  const { data: unlinkedRes } = useQuery({
+    queryKey: ['unlinked-devices'],
+    queryFn: getUnlinkedDevices,
+    staleTime: 60 * 1000,
+  });
+  const unlinkedCount = unlinkedRes?.data?.length ?? 0;
+
   const saveMutation = useMutation({
     mutationFn: () =>
       modal?.mode === 'edit'
@@ -135,14 +142,23 @@ export default function Assets() {
           </h1>
           <p className="text-slate-400 mt-1">Managed IT asset inventory — {total} record{total !== 1 ? 's' : ''}.</p>
         </div>
-        {canEdit && (
+        <div className="flex gap-3">
           <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+            onClick={() => navigate('/assets/reconcile')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-700 transition-colors"
           >
-            <Plus className="w-4 h-4" /> New asset
+            <GitMerge className="w-4 h-4" />
+            Reconcile{unlinkedCount > 0 ? ` (${unlinkedCount})` : ''}
           </button>
-        )}
+          {canEdit && (
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" /> New asset
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">

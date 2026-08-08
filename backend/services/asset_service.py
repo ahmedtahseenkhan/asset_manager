@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.models.asset import ALLOWED_TRANSITIONS, Asset, AssetLifecycleEvent
+from backend.models.asset_relationship import RELATIONSHIP_TYPES, AssetRelationship
 from backend.models.user import User
 from backend.schemas.asset import AssetCreate, AssetUpdate
 
@@ -21,6 +22,16 @@ def _serialize(asset: Asset) -> dict:
         )},
         "assignee_username": asset.assignee.username if asset.assignee else None,
         "device_hostname": asset.device.hostname if asset.device else None,
+    }
+
+
+def _summary(asset: Asset) -> dict:
+    return {
+        "id": asset.id,
+        "asset_tag": asset.asset_tag,
+        "name": asset.name,
+        "category": asset.category,
+        "lifecycle_state": asset.lifecycle_state,
     }
 
 
@@ -61,8 +72,17 @@ class AssetService:
     async def get_asset(db: AsyncSession, asset_id: int) -> Asset:
         result = await db.execute(
             select(Asset)
-            .options(selectinload(Asset.lifecycle_events))
+            .options(
+                selectinload(Asset.lifecycle_events),
+                selectinload(Asset.outgoing_relationships)
+                .selectinload(AssetRelationship.target),
+                selectinload(Asset.incoming_relationships)
+                .selectinload(AssetRelationship.source),
+            )
             .where(Asset.id == asset_id)
+            # Refresh eager-loaded collections even when the object is already
+            # in the session's identity map (e.g. right after adding an edge).
+            .execution_options(populate_existing=True)
         )
         asset = result.scalars().first()
         if not asset:
@@ -85,6 +105,26 @@ class AssetService:
                 for e in asset.lifecycle_events
             ],
             "allowed_transitions": ALLOWED_TRANSITIONS[asset.lifecycle_state],
+            "relationships": {
+                "outgoing": [
+                    {
+                        "id": r.id,
+                        "type": r.relationship_type,
+                        "label": r.relationship_type.replace("_", " "),
+                        "asset": _summary(r.target),
+                    }
+                    for r in asset.outgoing_relationships
+                ],
+                "incoming": [
+                    {
+                        "id": r.id,
+                        "type": r.relationship_type,
+                        "label": RELATIONSHIP_TYPES[r.relationship_type],
+                        "asset": _summary(r.source),
+                    }
+                    for r in asset.incoming_relationships
+                ],
+            },
         }
 
     @staticmethod

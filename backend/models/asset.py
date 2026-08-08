@@ -68,6 +68,14 @@ class Asset(Base):
         "AssetLifecycleEvent", back_populates="asset",
         cascade="all, delete-orphan", order_by="AssetLifecycleEvent.occurred_at",
     )
+    outgoing_relationships = relationship(
+        "AssetRelationship", foreign_keys="AssetRelationship.source_asset_id",
+        back_populates="source", cascade="all, delete-orphan",
+    )
+    incoming_relationships = relationship(
+        "AssetRelationship", foreign_keys="AssetRelationship.target_asset_id",
+        back_populates="target", cascade="all, delete-orphan",
+    )
     assignee = relationship("User", foreign_keys=[assigned_to], lazy="joined")
     device = relationship("Device", foreign_keys=[device_id], lazy="joined")
 

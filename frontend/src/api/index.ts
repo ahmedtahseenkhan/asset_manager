@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import type {
   DashboardSummary, CoverageGapSummary, APIResponse, DeviceListOut, Device, ConnectorStatus,
-  LicenseStatus, Asset, AssetDetail, AssetListOut,
+  LicenseStatus, Asset, AssetDetail, AssetListOut, UnlinkedDevice,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -80,3 +80,19 @@ export const transitionAsset = (id: number, to_state: string, note?: string) =>
 
 export const deleteAsset = (id: number) =>
   apiClient.delete<never, APIResponse<boolean>>(`/assets/${id}`);
+
+// ── ITAM: reconciliation & relationships ──────────────
+export const getUnlinkedDevices = () =>
+  apiClient.get<never, APIResponse<UnlinkedDevice[]>>('/reconciliation/devices');
+
+export const adoptDevices = (device_ids: number[]) =>
+  apiClient.post<never, APIResponse<{ id: number; asset_tag: string; name: string }[]>>('/reconciliation/adopt', { device_ids });
+
+export const linkDevice = (device_id: number, asset_id: number) =>
+  apiClient.post<never, APIResponse<any>>('/reconciliation/link', { device_id, asset_id });
+
+export const addRelationship = (assetId: number, target_asset_id: number, relationship_type: string) =>
+  apiClient.post<never, APIResponse<AssetDetail>>(`/assets/${assetId}/relationships`, { target_asset_id, relationship_type });
+
+export const removeRelationship = (assetId: number, relId: number) =>
+  apiClient.delete<never, APIResponse<AssetDetail>>(`/assets/${assetId}/relationships/${relId}`);

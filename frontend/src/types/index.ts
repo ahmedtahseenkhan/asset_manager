@@ -138,6 +138,7 @@ export interface LifecycleEvent {
 export interface AssetDetail extends Asset {
   lifecycle_events: LifecycleEvent[];
   allowed_transitions: string[];
+  relationships: AssetRelationships;
 }
 
 export interface AssetListOut {
@@ -145,4 +146,28 @@ export interface AssetListOut {
   total: number;
   page: number;
   size: number;
+}
+
+// ── ITAM: reconciliation & CMDB relationships ─────────
+export interface UnlinkedDevice {
+  id: number;
+  hostname: string | null;
+  fqdn: string | null;
+  ip_addresses: string[];
+  os_name: string | null;
+  os_version: string | null;
+  last_seen: string | null;
+  suggested_asset: { id: number; asset_tag: string; name: string } | null;
+}
+
+export interface RelationshipEdge {
+  id: number;
+  type: string;
+  label: string;
+  asset: { id: number; asset_tag: string; name: string; category: string; lifecycle_state: string };
+}
+
+export interface AssetRelationships {
+  outgoing: RelationshipEdge[];
+  incoming: RelationshipEdge[];
 }

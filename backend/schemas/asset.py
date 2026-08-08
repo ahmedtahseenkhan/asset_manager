@@ -93,9 +93,43 @@ class AssetOut(AssetBase):
         from_attributes = True
 
 
+class RelatedAssetSummary(BaseModel):
+    id: int
+    asset_tag: str
+    name: str
+    category: str
+    lifecycle_state: str
+
+
+class RelationshipEdgeOut(BaseModel):
+    id: int
+    type: str
+    label: str
+    asset: RelatedAssetSummary
+
+
+class RelationshipsOut(BaseModel):
+    outgoing: List[RelationshipEdgeOut] = []
+    incoming: List[RelationshipEdgeOut] = []
+
+
+class RelationshipCreate(BaseModel):
+    target_asset_id: int
+    relationship_type: str
+
+    @field_validator("relationship_type")
+    @classmethod
+    def type_allowed(cls, v: str) -> str:
+        from backend.models.asset_relationship import RELATIONSHIP_TYPES
+        if v not in RELATIONSHIP_TYPES:
+            raise ValueError(f"relationship_type must be one of {sorted(RELATIONSHIP_TYPES)}")
+        return v
+
+
 class AssetDetailOut(AssetOut):
     lifecycle_events: List[LifecycleEventOut] = []
     allowed_transitions: List[str] = []
+    relationships: RelationshipsOut = RelationshipsOut()
 
 
 class AssetListOut(BaseModel):
