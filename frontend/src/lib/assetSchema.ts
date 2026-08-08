@@ -1,5 +1,6 @@
-// Single source of truth for the asset attribute set — drives both the
+// Single source of truth for the asset attribute set — drives the tabbed
 // create/edit form and the read-only detail view so they never drift.
+import type { Asset } from '../types';
 
 export type FieldType = 'text' | 'number' | 'date' | 'datetime' | 'textarea' | 'select';
 
@@ -130,3 +131,28 @@ export const ENUM_BADGE: Record<string, Record<string, string>> = {
     unknown: 'bg-slate-500/20 text-slate-300 ring-slate-500/30',
   },
 };
+
+// ── Form state helpers (shared by the form page) ──────────────────────────
+export type AssetFormState = Record<string, string>;
+
+export const EMPTY_ASSET_FORM: AssetFormState = { name: '', category: 'hardware' };
+
+export function assetToForm(a: Asset): AssetFormState {
+  const f: AssetFormState = { name: a.name, category: a.category };
+  for (const key of ASSET_FIELD_KEYS) {
+    const v = (a as unknown as Record<string, unknown>)[key];
+    // datetime-local inputs need "YYYY-MM-DDTHH:mm"; trim ISO strings.
+    f[key] = v == null ? '' : String(v).slice(0, key === 'last_log_received' ? 16 : undefined);
+  }
+  return f;
+}
+
+export function assetFormToPayload(form: AssetFormState): Partial<Asset> {
+  const val = (s: string) => (s?.trim() === '' || s == null ? null : s.trim());
+  const payload: Record<string, unknown> = {
+    name: form.name.trim(),
+    category: form.category,
+  };
+  for (const key of ASSET_FIELD_KEYS) payload[key] = val(form[key]);
+  return payload as Partial<Asset>;
+}

@@ -12,6 +12,7 @@ import DeviceDetail from './pages/DeviceDetail';
 import Admin from './pages/Admin';
 import Assets from './pages/Assets';
 import AssetDetail from './pages/AssetDetail';
+import AssetForm from './pages/AssetForm';
 import License from './pages/License';
 import Reconciliation from './pages/Reconciliation';
 import Contracts from './pages/Contracts';
@@ -50,6 +51,8 @@ function AppRoutes() {
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
       <Route path="/assets/reconcile" element={<ProtectedRoute><Reconciliation /></ProtectedRoute>} />
+      <Route path="/assets/new" element={<ProtectedRoute><AssetForm /></ProtectedRoute>} />
+      <Route path="/assets/:id/edit" element={<ProtectedRoute><AssetForm /></ProtectedRoute>} />
       <Route path="/assets/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/entitlements" element={<ProtectedRoute><Entitlements /></ProtectedRoute>} />

@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssets, createAsset, updateAsset, getUnlinkedDevices } from '../api';
-import type { Asset } from '../types';
-import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, X, GitMerge, Cpu } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getAssets, getUnlinkedDevices } from '../api';
+import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, GitMerge } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
-import { ASSET_GROUPS, ASSET_FIELD_KEYS, CATEGORY_OPTIONS, ENUM_BADGE } from '../lib/assetSchema';
+import { ENUM_BADGE } from '../lib/assetSchema';
 
 const CATEGORIES = ['hardware', 'software', 'cloud', 'peripheral'] as const;
 const STATES = ['requested', 'ordered', 'in_stock', 'deployed', 'maintenance', 'retired'] as const;
@@ -28,42 +27,16 @@ export function StateBadge({ state }: { state: string }) {
   );
 }
 
-type FormState = Record<string, string>;
-
-const EMPTY_FORM: FormState = { name: '', category: 'hardware' };
-
-function assetToForm(a: Asset): FormState {
-  const f: FormState = { name: a.name, category: a.category };
-  for (const key of ASSET_FIELD_KEYS) {
-    const v = (a as unknown as Record<string, unknown>)[key];
-    f[key] = v == null ? '' : String(v);
-  }
-  return f;
-}
-
-function toPayload(form: FormState): Partial<Asset> {
-  const val = (s: string) => (s?.trim() === '' || s == null ? null : s.trim());
-  const payload: Record<string, unknown> = {
-    name: form.name.trim(),
-    category: form.category,
-  };
-  for (const key of ASSET_FIELD_KEYS) payload[key] = val(form[key]);
-  return payload as Partial<Asset>;
-}
-
 export default function Assets() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  useQueryClient();
   const canEdit = user?.role === 'admin' || user?.role === 'asset_manager';
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [state, setState] = useState('');
-  const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; asset: Asset } | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [error, setError] = useState('');
 
   const size = 25;
   const { data: res, isLoading } = useQuery({
@@ -84,31 +57,6 @@ export default function Assets() {
     staleTime: 60 * 1000,
   });
   const unlinkedCount = unlinkedRes?.data?.length ?? 0;
-
-  const saveMutation = useMutation({
-    mutationFn: () =>
-      modal?.mode === 'edit'
-        ? updateAsset(modal.asset.id, toPayload(form))
-        : createAsset(toPayload(form)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-      queryClient.invalidateQueries({ queryKey: ['license'] });
-      setModal(null);
-    },
-    onError: (err: unknown) => {
-      const data = (err as { response?: { data?: { detail?: unknown; message?: string } } })?.response?.data;
-      const detail = typeof data?.detail === 'string' ? data.detail : data?.message;
-      setError(detail ?? 'Save failed');
-    },
-  });
-
-  const openCreate = () => { setForm({ ...EMPTY_FORM }); setError(''); setModal({ mode: 'create' }); };
-  const openEdit = (a: Asset) => {
-    setForm(assetToForm(a));
-    setError('');
-    setModal({ mode: 'edit', asset: a });
-  };
-  const setField = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
   const input = 'w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
@@ -132,7 +80,7 @@ export default function Assets() {
           </button>
           {canEdit && (
             <button
-              onClick={openCreate}
+              onClick={() => navigate('/assets/new')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" /> New asset
@@ -206,7 +154,7 @@ export default function Assets() {
                   <td className="px-6 py-4 text-right">
                     {canEdit && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); openEdit(a); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/assets/${a.id}/edit`); }}
                         className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                         title="Edit"
                       >
@@ -237,88 +185,6 @@ export default function Assets() {
         )}
       </div>
 
-      {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setModal(null)}>
-          <div
-            className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-semibold text-white">
-                {modal.mode === 'edit' ? `Edit ${modal.asset.asset_tag}` : 'New asset'}
-              </h2>
-              <button onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => { e.preventDefault(); setError(''); saveMutation.mutate(); }}
-              className="space-y-6"
-            >
-              {/* Header: name + category */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <label className="sm:col-span-2 text-sm text-slate-400">Hostname / Asset Name *
-                  <input required value={form.name} onChange={(e) => setField('name', e.target.value)} className={`${input} mt-1`} />
-                </label>
-                <label className="text-sm text-slate-400">Device Category *
-                  <select value={form.category} onChange={(e) => setField('category', e.target.value)}
-                    disabled={modal.mode === 'edit'} className={`${input} mt-1 disabled:opacity-50`}>
-                    {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </label>
-              </div>
-
-              {ASSET_GROUPS.map((group) => (
-                <fieldset key={group.title} className="border-t border-slate-700/50 pt-4">
-                  <legend className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
-                    {group.title}
-                  </legend>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {group.fields.map((f) => (
-                      <label key={f.key} className={clsx('text-sm text-slate-400', f.full && 'sm:col-span-2')}>
-                        <span className="flex items-center gap-1.5">
-                          {f.label}
-                          {f.fromDevice && <Cpu className="w-3 h-3 text-slate-600" aria-label="auto-filled from linked device" />}
-                        </span>
-                        {f.type === 'select' ? (
-                          <select value={form[f.key] ?? ''} onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`}>
-                            <option value="">—</option>
-                            {f.options!.map((o) => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
-                          </select>
-                        ) : f.type === 'textarea' ? (
-                          <textarea rows={2} value={form[f.key] ?? ''} placeholder={f.placeholder}
-                            onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`} />
-                        ) : (
-                          <input
-                            type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date'
-                              : f.type === 'datetime' ? 'datetime-local' : 'text'}
-                            step={f.type === 'number' ? '0.01' : undefined}
-                            value={form[f.key] ?? ''} placeholder={f.placeholder}
-                            onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`} />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
-
-              {error && <p className="text-sm text-rose-400">{error}</p>}
-
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-700/50">
-                <button type="button" onClick={() => setModal(null)}
-                  className="px-4 py-2 text-sm text-slate-300 bg-slate-700/60 hover:bg-slate-700 rounded-lg transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saveMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
-                  {saveMutation.isPending ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
