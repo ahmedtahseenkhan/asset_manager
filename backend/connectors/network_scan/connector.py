@@ -5,11 +5,16 @@ active name/OS probes — all agentless and fully offline (no external services)
 Per live host it gathers:
 - liveness  — answers ping, OR appears in the ARP table (Windows firewalls
               commonly drop ICMP echo but a live host still answers ARP);
-- hostname  — reverse DNS, else NetBIOS node-status (Windows/SMB), else mDNS
-              (Apple/IoT/printers). First hit wins, in that order;
-- os family — inferred from the ICMP reply TTL (128≈Windows, 64≈Unix/macOS/
-              Linux, 255≈network gear). A scan cannot read the OS *version*;
-              that needs an agent (AD/EDR connectors).
+- hostname  — reverse DNS → NetBIOS node-status (Windows/SMB) → mDNS
+              (Apple/IoT) → SNMP sysName → SSDP friendlyName. First hit wins;
+- os / role — SNMP sysDescr (routers/printers) → open-port classification
+              (445/3389→Windows, 631/9100→printer, 62078→iOS, …) → ICMP TTL
+              (128≈Windows, 64≈Unix/macOS/Linux). Deep-probe adds SSDP model +
+              manufacturer for routers/TVs/IoT. A scan still cannot read the
+              exact OS *version* or serial — that needs an agent (AD/EDR).
+
+The active probes (SSDP, SNMP, port-scan) run when deep_probe is enabled
+(default). They are best-effort and agentless; firewalled hosts stay sparse.
 
 Note for containerised deployments: a bridge-networked container only sees
 its own virtual subnet. Run the API with host networking (Linux) or run the
@@ -153,6 +158,191 @@ def _local_ip() -> Optional[str]:
         return None
 
 
+# ── Port scan: classify OS/role from open TCP ports ───────────────────────
+# Each port maps to a hint; the strongest hint wins when several are open.
+_PORT_HINTS = {
+    3389: ("Windows", "workstation/server (RDP)"),
+    445:  ("Windows", "workstation/server (SMB)"),
+    139:  ("Windows", "workstation/server (NetBIOS)"),
+    135:  ("Windows", "workstation/server (RPC)"),
+    5357: ("Windows", "workstation (WSD)"),
+    62078: ("iOS", "iPhone/iPad"),
+    9100: (None, "printer (JetDirect)"),
+    631:  (None, "printer (IPP)"),
+    515:  (None, "printer (LPD)"),
+    548:  ("macOS", "Mac (AFP)"),
+    22:   (None, "SSH host (Linux/Unix/network)"),
+    5900: (None, "VNC host"),
+    1883: (None, "IoT (MQTT)"),
+    80:   (None, "web UI (router/IoT)"),
+    443:  (None, "web UI (router/IoT)"),
+    8080: (None, "web UI (router/IoT)"),
+}
+_SCAN_PORTS = list(_PORT_HINTS)
+
+
+async def _port_scan(ip: str, timeout: float = 0.6) -> List[int]:
+    """Return the open TCP ports from the probe list (parallel connect scan)."""
+    async def check(port: int) -> Optional[int]:
+        try:
+            fut = asyncio.open_connection(ip, port)
+            _, w = await asyncio.wait_for(fut, timeout=timeout)
+            w.close()
+            try:
+                await w.wait_closed()
+            except OSError:
+                pass
+            return port
+        except (OSError, asyncio.TimeoutError):
+            return None
+
+    results = await asyncio.gather(*(check(p) for p in _SCAN_PORTS))
+    return sorted(p for p in results if p is not None)
+
+
+def _classify_ports(open_ports: List[int]) -> Tuple[Optional[str], Optional[str]]:
+    """(os_hint, role_hint) derived from open ports, honouring _PORT_HINTS order."""
+    os_hint = role = None
+    for port in _SCAN_PORTS:                 # iterate by priority
+        if port in open_ports:
+            os_h, role_h = _PORT_HINTS[port]
+            if os_hint is None and os_h:
+                os_hint = os_h
+            if role is None:
+                role = role_h
+    return os_hint, role
+
+
+# ── SNMP v1: sysDescr / sysName (routers, printers, switches) ──────────────
+def _snmp_get(ip: str, community: str = "public", timeout: float = 1.0) -> Dict[str, str]:
+    """Minimal SNMPv1 GET for sysDescr.0 and sysName.0. Returns {} on no reply."""
+    def _tlv(tag: int, val: bytes) -> bytes:
+        return bytes([tag]) + bytes([len(val)]) + val   # lengths here are always <128
+
+    def _int(n: int) -> bytes:
+        return _tlv(0x02, n.to_bytes((n.bit_length() // 8) + 1, "big") or b"\x00")
+
+    def _oid(parts: List[int]) -> bytes:
+        body = bytes([parts[0] * 40 + parts[1]])
+        for p in parts[2:]:
+            if p < 128:
+                body += bytes([p])
+            else:
+                stack = []
+                while p:
+                    stack.insert(0, p & 0x7F)
+                    p >>= 7
+                body += bytes([b | 0x80 for b in stack[:-1]] + [stack[-1]])
+        return _tlv(0x06, body)
+
+    sys_descr = [1, 3, 6, 1, 2, 1, 1, 1, 0]
+    sys_name = [1, 3, 6, 1, 2, 1, 1, 5, 0]
+    varbinds = b"".join(
+        _tlv(0x30, _oid(o) + _tlv(0x05, b""))     # OID + NULL
+        for o in (sys_descr, sys_name)
+    )
+    pdu = _tlv(0xA0, _int(0x2A) + _int(0) + _int(0) + _tlv(0x30, varbinds))
+    msg = _tlv(0x30, _int(0) + _tlv(0x04, community.encode()) + pdu)
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(timeout)
+            s.sendto(msg, (ip, 161))
+            data, _ = s.recvfrom(4096)
+    except OSError:
+        return {}
+
+    # Collect the OCTET STRING values in order (sysDescr, then sysName).
+    strings, i = [], 0
+    while i < len(data) - 1:
+        if data[i] == 0x04:
+            ln = data[i + 1]
+            if ln < 128 and i + 2 + ln <= len(data):
+                val = data[i + 2:i + 2 + ln]
+                if val and val != community.encode():
+                    strings.append(val.decode("utf-8", "ignore"))
+                i += 2 + ln
+                continue
+        i += 1
+    out = {}
+    if strings:
+        out["sys_descr"] = strings[0]
+    if len(strings) > 1:
+        out["sys_name"] = strings[1]
+    return out
+
+
+# ── SSDP / UPnP: model + manufacturer (routers, TVs, media, IoT) ───────────
+def _ssdp_discover_sync(timeout: float = 2.0) -> Dict[str, Dict[str, str]]:
+    """One multicast M-SEARCH; returns {ip: {'server':..., 'location':...}}.
+
+    Blocking sockets (run via a thread) — uvloop does not implement the
+    asyncio sock_sendto/sock_recvfrom datagram helpers.
+    """
+    msg = (
+        "M-SEARCH * HTTP/1.1\r\n"
+        "HOST: 239.255.255.250:1900\r\n"
+        'MAN: "ssdp:discover"\r\n'
+        "MX: 1\r\n"
+        "ST: ssdp:all\r\n\r\n"
+    ).encode()
+
+    found: Dict[str, Dict[str, str]] = {}
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    deadline = timeout
+    try:
+        sock.sendto(msg, ("239.255.255.250", 1900))
+        sock.settimeout(0.5)
+        import time
+        start = time.monotonic()
+        while time.monotonic() - start < deadline:
+            try:
+                data, addr = sock.recvfrom(2048)
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            text = data.decode("utf-8", "ignore")
+            entry = found.setdefault(addr[0], {})
+            for line in text.split("\r\n"):
+                low = line.lower()
+                if low.startswith("server:"):
+                    entry["server"] = line.split(":", 1)[1].strip()
+                elif low.startswith("location:"):
+                    entry["location"] = line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    finally:
+        sock.close()
+    return found
+
+
+async def _ssdp_discover(timeout: float = 2.0) -> Dict[str, Dict[str, str]]:
+    return await asyncio.to_thread(_ssdp_discover_sync, timeout)
+
+
+async def _ssdp_device_details(location: str, timeout: float = 2.0) -> Dict[str, str]:
+    """Fetch the UPnP description XML for friendlyName / manufacturer / modelName."""
+    try:
+        import urllib.request
+
+        def _fetch() -> str:
+            with urllib.request.urlopen(location, timeout=timeout) as r:
+                return r.read(65536).decode("utf-8", "ignore")
+
+        xml = await asyncio.to_thread(_fetch)
+    except Exception:
+        return {}
+    out = {}
+    for tag in ("friendlyName", "manufacturer", "modelName", "modelDescription"):
+        m = re.search(rf"<{tag}>(.*?)</{tag}>", xml, re.DOTALL)
+        if m:
+            out[tag] = m.group(1).strip()
+    return out
+
+
 def _resolve_subnet(config: Dict[str, Any]) -> ipaddress.IPv4Network:
     subnet = (config.get("subnet") or "auto").strip()
     if subnet == "auto":
@@ -262,29 +452,62 @@ class NetworkScanConnector(BaseConnector):
 
         now = datetime.now(timezone.utc)
         records: List[RawDeviceRecord] = []
+        deep = config.get("deep_probe", True)   # SSDP/SNMP/port-scan enrichment
 
-        # Resolve a name for each host: reverse DNS → NetBIOS → mDNS (first hit).
-        async def resolve(ip: str) -> Tuple[str, Optional[str], str]:
-            rdns = await _reverse_dns(ip)
-            if rdns:
-                return ip, rdns, "reverse_dns"
-            nb = await asyncio.to_thread(_netbios_name, ip)
-            if nb:
-                return ip, nb, "netbios"
-            md = await asyncio.to_thread(_mdns_name, ip)
-            if md:
-                return ip, md, "mdns"
-            return ip, None, "none"
+        # SSDP is a single multicast query answered by many devices at once.
+        ssdp: Dict[str, Dict[str, str]] = await _ssdp_discover() if deep else {}
+        for ip, info in ssdp.items():
+            if info.get("location"):
+                info.update(await _ssdp_device_details(info["location"]))
 
-        resolved = {ip: (name, src) for ip, name, src
-                    in await asyncio.gather(*(resolve(ip) for ip in alive if ip != local))}
+        # Per-host enrichment: name resolution + (optionally) ports & SNMP.
+        async def enrich(ip: str) -> Tuple[str, dict]:
+            async with sem:
+                out: dict = {}
+                rdns = await _reverse_dns(ip)
+                if rdns:
+                    out["name"], out["name_source"] = rdns, "reverse_dns"
+                else:
+                    nb = await asyncio.to_thread(_netbios_name, ip)
+                    if nb:
+                        out["name"], out["name_source"] = nb, "netbios"
+                    else:
+                        md = await asyncio.to_thread(_mdns_name, ip)
+                        out["name"], out["name_source"] = (md, "mdns") if md else (None, "none")
+                if deep:
+                    out["open_ports"] = await _port_scan(ip)
+                    out["snmp"] = await asyncio.to_thread(_snmp_get, ip)
+                return ip, out
+
+        enriched = dict(await asyncio.gather(*(enrich(ip) for ip in alive if ip != local)))
 
         for ip in sorted(alive, key=ipaddress.IPv4Address):
             if ip == local:
                 continue   # the scanning host is added below with richer detail
-            name, name_src = resolved.get(ip, (None, "none"))
+            e = enriched.get(ip, {})
+            sd = ssdp.get(ip, {})
+            open_ports = e.get("open_ports", [])
+            snmp = e.get("snmp", {})
+            port_os, port_role = _classify_ports(open_ports)
+
+            # Hostname: DNS/NetBIOS/mDNS → SNMP sysName → SSDP friendlyName.
+            name = e.get("name") or snmp.get("sys_name") or sd.get("friendlyName")
+            name_src = e.get("name_source", "none")
+            if not e.get("name") and snmp.get("sys_name"):
+                name_src = "snmp"
+            elif not e.get("name") and sd.get("friendlyName"):
+                name_src = "ssdp"
             fqdn = name if (name and "." in name) else None
             hostname = name.split(".")[0] if name else None
+
+            # OS: SNMP sysDescr (richest) → open-port hint → TTL guess.
+            os_name = snmp.get("sys_descr") or port_os or _os_from_ttl(ttls.get(ip))
+
+            # Human-readable device type/model for the detail view.
+            model = None
+            if sd.get("manufacturer") or sd.get("modelName"):
+                model = " ".join(filter(None, [sd.get("manufacturer"), sd.get("modelName")]))
+
             mac = arp.get(ip)
             records.append({
                 # IP is the stable identity for a passive scan — a device's MAC
@@ -295,14 +518,19 @@ class NetworkScanConnector(BaseConnector):
                 "fqdn": fqdn,
                 "ip_addresses": [ip],
                 "mac_addresses": [mac] if mac else [],
-                "os_name": _os_from_ttl(ttls.get(ip)),   # family only; version needs an agent
-                "os_version": None,
+                "os_name": os_name,
+                "os_version": None,      # exact version needs an agent
                 "domain": None,
                 "ou": None,
                 "last_seen": now,
-                "extra": {"ping": ping_ok.get(ip, False), "arp": ip in arp,
-                          "ttl": ttls.get(ip), "name_source": name_src,
-                          "method": "ping_sweep"},
+                "extra": {
+                    "ping": ping_ok.get(ip, False), "arp": ip in arp,
+                    "ttl": ttls.get(ip), "name_source": name_src,
+                    "open_ports": open_ports, "role": port_role,
+                    "model": model, "ssdp_server": sd.get("server"),
+                    "snmp_descr": snmp.get("sys_descr"),
+                    "method": "ping_sweep",
+                },
             })
 
         # Always include the machine running the scan (it never ARPs itself).
@@ -339,6 +567,13 @@ class NetworkScanConnector(BaseConnector):
                     "type": "integer",
                     "title": "Ping timeout (ms)",
                     "default": 1000,
+                },
+                "deep_probe": {
+                    "type": "boolean",
+                    "title": "Deep probe (SSDP/SNMP/port-scan)",
+                    "default": True,
+                    "description": "Actively query each host for model, OS and role. "
+                                   "Slower but far more detail. Disable for a quick sweep.",
                 },
             },
         }
