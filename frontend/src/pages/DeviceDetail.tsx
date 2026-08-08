@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getDeviceById } from '../api';
 import type { DeviceSource } from '../types';
 import {
-  ArrowLeft, Laptop, Clock, Globe, Network, Cpu,
+  ArrowLeft, Laptop, Clock, Globe, Network, Cpu, Radar,
   ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -121,8 +121,12 @@ export default function DeviceDetail() {
   const statusCfg = STATUS_CONFIG[device.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.active;
   const StatusIcon = statusCfg.icon;
 
+  // Surface the network-scan enrichment (stored per-source in raw_data.extra).
+  const scanSource = device.sources.find((s) => s.raw_data?.extra);
+  const extra = scanSource?.raw_data?.extra as Record<string, unknown> | undefined;
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Back button */}
       <button
         onClick={() => navigate('/devices')}
@@ -257,6 +261,44 @@ export default function DeviceDetail() {
           )}
         </div>
       </div>
+
+      {/* Discovery details — network scan enrichment, surfaced from raw_data.extra */}
+      {extra && (
+        <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Radar className="w-4 h-4" /> Discovery Details
+            <span className="text-xs font-normal text-slate-500 normal-case">via {scanSource!.source_name}</span>
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+            <div>
+              <InfoRow label="Operating System" value={device.os_name} />
+              <InfoRow label="Role / Type" value={extra.role as string} />
+              <InfoRow label="Model" value={extra.model as string} />
+              <InfoRow label="Open Ports" value={
+                Array.isArray(extra.open_ports) && extra.open_ports.length
+                  ? <span className="font-mono">{(extra.open_ports as number[]).join(', ')}</span> : null
+              } />
+              <InfoRow label="SSDP Server" value={extra.ssdp_server as string} />
+              <InfoRow label="SNMP" value={extra.snmp_descr as string} />
+            </div>
+            <div>
+              <InfoRow label="Name Source" value={extra.name_source as string} />
+              <InfoRow label="TTL" value={extra.ttl != null ? String(extra.ttl) : null} />
+              <InfoRow label="Responded to Ping" value={
+                extra.ping != null ? (extra.ping ? 'Yes' : 'No') : null
+              } />
+              <InfoRow label="In ARP Table" value={
+                extra.arp != null ? (extra.arp ? 'Yes' : 'No') : null
+              } />
+              <InfoRow label="Method" value={extra.method as string} />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-4">
+            A network scan reports presence and best-effort classification. OS version,
+            serial number and installed software require an agent — not available from a scan.
+          </p>
+        </div>
+      )}
 
       {/* Raw source data */}
       {device.sources.length > 0 && (
