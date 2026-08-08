@@ -230,21 +230,21 @@ export default function AssetDetail() {
 
         {ASSET_GROUPS.map((group) => {
           const shown = group.fields.filter((f) => f.key !== 'notes');
-          const hasValue = shown.some((f) => (asset as unknown as Record<string, unknown>)[f.key]);
-          if (!hasValue) return null;
+          if (shown.length === 0) return null;
           return (
             <div key={group.title} className="border-t border-slate-700/50 pt-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">{group.title}</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
                 {shown.map((f) => {
                   const raw = (asset as unknown as Record<string, unknown>)[f.key];
-                  if (raw == null || raw === '') return null;
-                  const badge = ENUM_BADGE[f.key]?.[String(raw)];
+                  const empty = raw == null || raw === '';
+                  const badge = !empty ? ENUM_BADGE[f.key]?.[String(raw)] : undefined;
                   return (
                     <Field key={f.key} label={f.label} value={
-                      badge
-                        ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${badge}`}>{String(raw).replace(/_/g, ' ')}</span>
-                        : String(raw)
+                      empty ? null
+                        : badge
+                          ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${badge}`}>{String(raw).replace(/_/g, ' ')}</span>
+                          : String(raw)
                     } />
                   );
                 })}
