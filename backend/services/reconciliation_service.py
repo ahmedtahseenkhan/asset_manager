@@ -88,10 +88,15 @@ class ReconciliationService:
                 asset_type="computer",
                 lifecycle_state="deployed",   # it is live on the network
                 device_id=d.id,
+                # Seed technical identity from the discovered device.
+                ip_address=(d.ip_addresses or [None])[0],
+                mac_address=(d.mac_addresses or [None])[0],
+                os_name=d.os_name,
+                os_version=d.os_version,
                 created_by=actor.id,
                 asset_tag="",
                 custom_fields={},
-                notes=f"Adopted from discovered device (os: {d.os_name or 'unknown'})",
+                notes="Adopted from discovered device.",
             )
             db.add(asset)
             await db.flush()

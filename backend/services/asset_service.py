@@ -11,18 +11,34 @@ from backend.models.user import User
 from backend.schemas.asset import AssetCreate, AssetUpdate
 
 
+_ASSET_COLUMNS = (
+    "id", "asset_tag", "name", "category", "asset_type", "lifecycle_state",
+    "serial_number", "vendor", "model", "firmware_version",
+    "ip_address", "mac_address", "os_name", "os_version", "applications",
+    "network_zone", "location", "department", "assigned_to", "point_of_contact",
+    "criticality", "data_classification", "compliance",
+    "log_source_status", "log_source_type", "log_forwarding_destination",
+    "last_log_received", "monitoring_status", "backup_status", "last_vulnerability_scan",
+    "purchase_date", "purchase_cost", "currency", "warranty_end",
+    "eol_eos_date", "last_reviewed_date", "reviewer",
+    "custom_fields", "notes", "device_id", "created_at", "updated_at",
+)
+
+
 def _serialize(asset: Asset) -> dict:
     """Flatten ORM row + joined names into an AssetOut-shaped dict."""
-    return {
-        **{c: getattr(asset, c) for c in (
-            "id", "asset_tag", "name", "category", "asset_type", "lifecycle_state",
-            "serial_number", "vendor", "model", "location", "department", "assigned_to",
-            "purchase_date", "purchase_cost", "currency", "warranty_end",
-            "custom_fields", "notes", "device_id", "created_at", "updated_at",
-        )},
-        "assignee_username": asset.assignee.username if asset.assignee else None,
-        "device_hostname": asset.device.hostname if asset.device else None,
-    }
+    data = {c: getattr(asset, c) for c in _ASSET_COLUMNS}
+    # For a linked discovered device, surface its live IP/MAC/OS when the asset
+    # field is blank — the scan keeps these current without manual entry.
+    if asset.device:
+        dev = asset.device
+        data["ip_address"] = data["ip_address"] or (dev.ip_addresses or [None])[0]
+        data["mac_address"] = data["mac_address"] or (dev.mac_addresses or [None])[0]
+        data["os_name"] = data["os_name"] or dev.os_name
+        data["os_version"] = data["os_version"] or dev.os_version
+    data["assignee_username"] = asset.assignee.username if asset.assignee else None
+    data["device_hostname"] = asset.device.hostname if asset.device else None
+    return data
 
 
 def _summary(asset: Asset) -> dict:

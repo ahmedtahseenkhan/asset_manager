@@ -4,26 +4,83 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from backend.models.asset import ASSET_CATEGORIES, LIFECYCLE_STATES
+from backend.models.asset import (
+    ASSET_CATEGORIES,
+    BACKUP_STATUS,
+    CRITICALITY,
+    DATA_CLASSIFICATION,
+    LIFECYCLE_STATES,
+    LOG_SOURCE_STATUS,
+    MONITORING_STATUS,
+)
 
 
-class AssetBase(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    category: str
+def _enum_validator(field_name: str, allowed: List[str]):
+    """Build a reusable optional-enum validator (empty string → None)."""
+    def _check(cls, v):
+        if v is None or v == "":
+            return None
+        if v not in allowed:
+            raise ValueError(f"{field_name} must be one of {allowed}")
+        return v
+    return _check
+
+
+class _AssetFields(BaseModel):
+    """Every editable asset attribute (all optional except where noted)."""
+    # Identity
     asset_type: Optional[str] = Field(default=None, max_length=64)
     serial_number: Optional[str] = None
     vendor: Optional[str] = None
     model: Optional[str] = None
+    firmware_version: Optional[str] = None
+    # Technical (auto-filled from linked device on adopt)
+    ip_address: Optional[str] = None
+    mac_address: Optional[str] = None
+    os_name: Optional[str] = None
+    os_version: Optional[str] = None
+    applications: Optional[str] = None
+    # Network & ownership
+    network_zone: Optional[str] = None
     location: Optional[str] = None
     department: Optional[str] = None
     assigned_to: Optional[int] = None
+    point_of_contact: Optional[str] = None
+    # Security / compliance
+    criticality: Optional[str] = None
+    data_classification: Optional[str] = None
+    compliance: Optional[str] = None
+    # Log source / monitoring
+    log_source_status: Optional[str] = None
+    log_source_type: Optional[str] = None
+    log_forwarding_destination: Optional[str] = None
+    last_log_received: Optional[datetime] = None
+    monitoring_status: Optional[str] = None
+    backup_status: Optional[str] = None
+    last_vulnerability_scan: Optional[date] = None
+    # Procurement / lifecycle / governance
     purchase_date: Optional[date] = None
     purchase_cost: Optional[Decimal] = None
-    currency: str = Field(default="USD", min_length=3, max_length=3)
+    currency: Optional[str] = Field(default="USD", min_length=3, max_length=3)
     warranty_end: Optional[date] = None
+    eol_eos_date: Optional[date] = None
+    last_reviewed_date: Optional[date] = None
+    reviewer: Optional[str] = None
+    # Misc
     custom_fields: Dict[str, Any] = Field(default_factory=dict)
     notes: Optional[str] = None
     device_id: Optional[int] = None
+
+    _v_crit = field_validator("criticality")(_enum_validator("criticality", CRITICALITY))
+    _v_data = field_validator("data_classification")(_enum_validator("data_classification", DATA_CLASSIFICATION))
+    _v_log = field_validator("log_source_status")(_enum_validator("log_source_status", LOG_SOURCE_STATUS))
+    _v_mon = field_validator("monitoring_status")(_enum_validator("monitoring_status", MONITORING_STATUS))
+    _v_bak = field_validator("backup_status")(_enum_validator("backup_status", BACKUP_STATUS))
+
+
+class AssetBase(_AssetFields):
+    name: str = Field(min_length=1, max_length=255)
+    category: str
 
     @field_validator("category")
     @classmethod
@@ -37,23 +94,10 @@ class AssetCreate(AssetBase):
     asset_tag: Optional[str] = Field(default=None, max_length=64)  # auto-generated if omitted
 
 
-class AssetUpdate(BaseModel):
-    """Partial update — lifecycle_state is intentionally excluded; use /transition."""
+class AssetUpdate(_AssetFields):
+    """Partial update — lifecycle_state is excluded (use /transition); name/category optional."""
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    asset_type: Optional[str] = None
-    serial_number: Optional[str] = None
-    vendor: Optional[str] = None
-    model: Optional[str] = None
-    location: Optional[str] = None
-    department: Optional[str] = None
-    assigned_to: Optional[int] = None
-    purchase_date: Optional[date] = None
-    purchase_cost: Optional[Decimal] = None
     currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
-    warranty_end: Optional[date] = None
-    custom_fields: Optional[Dict[str, Any]] = None
-    notes: Optional[str] = None
-    device_id: Optional[int] = None
 
 
 class LifecycleTransition(BaseModel):

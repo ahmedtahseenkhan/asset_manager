@@ -110,14 +110,41 @@ export interface Asset {
   serial_number: string | null;
   vendor: string | null;
   model: string | null;
+  firmware_version: string | null;
+  // Technical identity (auto-filled from linked device)
+  ip_address: string | null;
+  mac_address: string | null;
+  os_name: string | null;
+  os_version: string | null;
+  applications: string | null;
+  // Network & ownership
+  network_zone: string | null;
   location: string | null;
   department: string | null;
   assigned_to: number | null;
   assignee_username: string | null;
+  point_of_contact: string | null;
+  // Security / compliance
+  criticality: 'critical' | 'high' | 'medium' | 'low' | null;
+  data_classification: 'restricted' | 'confidential' | 'internal' | 'public' | null;
+  compliance: string | null;
+  // Log source / monitoring
+  log_source_status: 'onboarded' | 'not_onboarded' | 'inactive' | null;
+  log_source_type: string | null;
+  log_forwarding_destination: string | null;
+  last_log_received: string | null;
+  monitoring_status: 'monitored' | 'not_monitored' | 'degraded' | null;
+  backup_status: 'protected' | 'unprotected' | 'failed' | 'unknown' | null;
+  last_vulnerability_scan: string | null;
+  // Procurement / lifecycle / governance
   purchase_date: string | null;
   purchase_cost: string | null;
   currency: string;
   warranty_end: string | null;
+  eol_eos_date: string | null;
+  last_reviewed_date: string | null;
+  reviewer: string | null;
+  // Misc
   custom_fields: Record<string, unknown>;
   notes: string | null;
   device_id: number | null;

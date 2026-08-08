@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssets, createAsset, updateAsset, getUnlinkedDevices } from '../api';
 import type { Asset } from '../types';
-import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, X, GitMerge } from 'lucide-react';
+import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, X, GitMerge, Cpu } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import { ASSET_GROUPS, ASSET_FIELD_KEYS, CATEGORY_OPTIONS, ENUM_BADGE } from '../lib/assetSchema';
 
 const CATEGORIES = ['hardware', 'software', 'cloud', 'peripheral'] as const;
 const STATES = ['requested', 'ordered', 'in_stock', 'deployed', 'maintenance', 'retired'] as const;
@@ -27,43 +28,27 @@ export function StateBadge({ state }: { state: string }) {
   );
 }
 
-interface FormState {
-  name: string;
-  category: string;
-  asset_type: string;
-  serial_number: string;
-  vendor: string;
-  model: string;
-  location: string;
-  department: string;
-  purchase_date: string;
-  purchase_cost: string;
-  warranty_end: string;
-  notes: string;
+type FormState = Record<string, string>;
+
+const EMPTY_FORM: FormState = { name: '', category: 'hardware' };
+
+function assetToForm(a: Asset): FormState {
+  const f: FormState = { name: a.name, category: a.category };
+  for (const key of ASSET_FIELD_KEYS) {
+    const v = (a as unknown as Record<string, unknown>)[key];
+    f[key] = v == null ? '' : String(v);
+  }
+  return f;
 }
 
-const EMPTY_FORM: FormState = {
-  name: '', category: 'hardware', asset_type: '', serial_number: '', vendor: '',
-  model: '', location: '', department: '', purchase_date: '', purchase_cost: '',
-  warranty_end: '', notes: '',
-};
-
 function toPayload(form: FormState): Partial<Asset> {
-  const val = (s: string) => (s.trim() === '' ? null : s.trim());
-  return {
+  const val = (s: string) => (s?.trim() === '' || s == null ? null : s.trim());
+  const payload: Record<string, unknown> = {
     name: form.name.trim(),
-    category: form.category as Asset['category'],
-    asset_type: val(form.asset_type),
-    serial_number: val(form.serial_number),
-    vendor: val(form.vendor),
-    model: val(form.model),
-    location: val(form.location),
-    department: val(form.department),
-    purchase_date: val(form.purchase_date),
-    purchase_cost: val(form.purchase_cost),
-    warranty_end: val(form.warranty_end),
-    notes: val(form.notes),
+    category: form.category,
   };
+  for (const key of ASSET_FIELD_KEYS) payload[key] = val(form[key]);
+  return payload as Partial<Asset>;
 }
 
 export default function Assets() {
@@ -117,18 +102,13 @@ export default function Assets() {
     },
   });
 
-  const openCreate = () => { setForm(EMPTY_FORM); setError(''); setModal({ mode: 'create' }); };
+  const openCreate = () => { setForm({ ...EMPTY_FORM }); setError(''); setModal({ mode: 'create' }); };
   const openEdit = (a: Asset) => {
-    setForm({
-      name: a.name, category: a.category, asset_type: a.asset_type ?? '',
-      serial_number: a.serial_number ?? '', vendor: a.vendor ?? '', model: a.model ?? '',
-      location: a.location ?? '', department: a.department ?? '',
-      purchase_date: a.purchase_date ?? '', purchase_cost: a.purchase_cost ?? '',
-      warranty_end: a.warranty_end ?? '', notes: a.notes ?? '',
-    });
+    setForm(assetToForm(a));
     setError('');
     setModal({ mode: 'edit', asset: a });
   };
+  const setField = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
   const input = 'w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
@@ -189,18 +169,19 @@ export default function Assets() {
               <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold text-slate-400 tracking-wider">
                 <th className="px-6 py-4">Tag</th>
                 <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">IP</th>
+                <th className="px-6 py-4">OS</th>
+                <th className="px-6 py-4">Criticality</th>
+                <th className="px-6 py-4">Log Source</th>
                 <th className="px-6 py-4">State</th>
-                <th className="px-6 py-4">Vendor / Model</th>
-                <th className="px-6 py-4">Assigned</th>
                 <th className="px-6 py-4" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
               {isLoading ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-500">Loading…</td></tr>
+                <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-500">Loading…</td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-500">No assets yet.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-500">No assets yet.</td></tr>
               ) : items.map((a) => (
                 <tr
                   key={a.id}
@@ -209,12 +190,19 @@ export default function Assets() {
                 >
                   <td className="px-6 py-4 font-mono text-xs text-indigo-300">{a.asset_tag}</td>
                   <td className="px-6 py-4 font-medium text-slate-200">{a.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-300">{a.category}</td>
-                  <td className="px-6 py-4"><StateBadge state={a.lifecycle_state} /></td>
-                  <td className="px-6 py-4 text-sm text-slate-400">
-                    {[a.vendor, a.model].filter(Boolean).join(' / ') || '—'}
+                  <td className="px-6 py-4 text-sm text-slate-400 font-mono">{a.ip_address ?? '—'}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400">{a.os_name ?? '—'}</td>
+                  <td className="px-6 py-4">
+                    {a.criticality
+                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.criticality[a.criticality]}`}>{a.criticality}</span>
+                      : <span className="text-slate-600">—</span>}
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{a.assignee_username ?? '—'}</td>
+                  <td className="px-6 py-4">
+                    {a.log_source_status
+                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.log_source_status[a.log_source_status]}`}>{a.log_source_status.replace(/_/g, ' ')}</span>
+                      : <span className="text-slate-600">—</span>}
+                  </td>
+                  <td className="px-6 py-4"><StateBadge state={a.lifecycle_state} /></td>
                   <td className="px-6 py-4 text-right">
                     {canEdit && (
                       <button
@@ -252,7 +240,7 @@ export default function Assets() {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setModal(null)}>
           <div
-            className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
+            className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
@@ -266,55 +254,58 @@ export default function Assets() {
 
             <form
               onSubmit={(e) => { e.preventDefault(); setError(''); saveMutation.mutate(); }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              className="space-y-6"
             >
-              <label className="sm:col-span-2 text-sm text-slate-400">Name *
-                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Category *
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  disabled={modal.mode === 'edit'}
-                  className={`${input} mt-1 disabled:opacity-50`}
-                >
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </label>
-              <label className="text-sm text-slate-400">Type
-                <input value={form.asset_type} onChange={(e) => setForm({ ...form, asset_type: e.target.value })} placeholder="laptop, server, vm…" className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Serial number
-                <input value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Vendor
-                <input value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Model
-                <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Location
-                <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Department
-                <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Purchase date
-                <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Purchase cost
-                <input type="number" step="0.01" min="0" value={form.purchase_cost} onChange={(e) => setForm({ ...form, purchase_cost: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="text-sm text-slate-400">Warranty end
-                <input type="date" value={form.warranty_end} onChange={(e) => setForm({ ...form, warranty_end: e.target.value })} className={`${input} mt-1`} />
-              </label>
-              <label className="sm:col-span-2 text-sm text-slate-400">Notes
-                <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={`${input} mt-1`} />
-              </label>
+              {/* Header: name + category */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <label className="sm:col-span-2 text-sm text-slate-400">Hostname / Asset Name *
+                  <input required value={form.name} onChange={(e) => setField('name', e.target.value)} className={`${input} mt-1`} />
+                </label>
+                <label className="text-sm text-slate-400">Device Category *
+                  <select value={form.category} onChange={(e) => setField('category', e.target.value)}
+                    disabled={modal.mode === 'edit'} className={`${input} mt-1 disabled:opacity-50`}>
+                    {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              </div>
 
-              {error && <p className="sm:col-span-2 text-sm text-rose-400">{error}</p>}
+              {ASSET_GROUPS.map((group) => (
+                <fieldset key={group.title} className="border-t border-slate-700/50 pt-4">
+                  <legend className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
+                    {group.title}
+                  </legend>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {group.fields.map((f) => (
+                      <label key={f.key} className={clsx('text-sm text-slate-400', f.full && 'sm:col-span-2')}>
+                        <span className="flex items-center gap-1.5">
+                          {f.label}
+                          {f.fromDevice && <Cpu className="w-3 h-3 text-slate-600" aria-label="auto-filled from linked device" />}
+                        </span>
+                        {f.type === 'select' ? (
+                          <select value={form[f.key] ?? ''} onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`}>
+                            <option value="">—</option>
+                            {f.options!.map((o) => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+                          </select>
+                        ) : f.type === 'textarea' ? (
+                          <textarea rows={2} value={form[f.key] ?? ''} placeholder={f.placeholder}
+                            onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`} />
+                        ) : (
+                          <input
+                            type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date'
+                              : f.type === 'datetime' ? 'datetime-local' : 'text'}
+                            step={f.type === 'number' ? '0.01' : undefined}
+                            value={form[f.key] ?? ''} placeholder={f.placeholder}
+                            onChange={(e) => setField(f.key, e.target.value)} className={`${input} mt-1`} />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
 
-              <div className="sm:col-span-2 flex justify-end gap-3 mt-1">
+              {error && <p className="text-sm text-rose-400">{error}</p>}
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-700/50">
                 <button type="button" onClick={() => setModal(null)}
                   className="px-4 py-2 text-sm text-slate-300 bg-slate-700/60 hover:bg-slate-700 rounded-lg transition-colors">
                   Cancel

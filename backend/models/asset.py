@@ -29,6 +29,13 @@ ALLOWED_TRANSITIONS = {
 
 ASSET_CATEGORIES = ["hardware", "software", "cloud", "peripheral"]
 
+# Controlled vocabularies for the security/CMDB fields (all nullable).
+CRITICALITY = ["critical", "high", "medium", "low"]
+DATA_CLASSIFICATION = ["restricted", "confidential", "internal", "public"]
+LOG_SOURCE_STATUS = ["onboarded", "not_onboarded", "inactive"]
+MONITORING_STATUS = ["monitored", "not_monitored", "degraded"]
+BACKUP_STATUS = ["protected", "unprotected", "failed", "unknown"]
+
 
 class Asset(Base):
     """Canonical managed ITAM record. Discovered `devices` link in via device_id."""
@@ -52,6 +59,37 @@ class Asset(Base):
     purchase_cost = Column(Numeric(12, 2))
     currency = Column(String(3), default="USD")
     warranty_end = Column(Date)
+
+    # ── Technical identity (auto-filled from the linked device when adopted) ──
+    firmware_version = Column(String(128))
+    ip_address = Column(String(64))
+    mac_address = Column(String(64))
+    os_name = Column(String(255))
+    os_version = Column(String(128))
+    applications = Column(Text)                 # Applications / Services (free text/CSV)
+
+    # ── Network & ownership ──
+    network_zone = Column(String(128))          # Network Zone / VLAN
+    point_of_contact = Column(String(255))
+
+    # ── Security / compliance posture ──
+    criticality = Column(String(16))            # critical | high | medium | low
+    data_classification = Column(String(16))    # restricted | confidential | internal | public
+    compliance = Column(String(255))            # e.g. "PCI-DSS, ISO 27001"
+
+    # ── Log source / monitoring (SIEM onboarding) ──
+    log_source_status = Column(String(16))      # onboarded | not_onboarded | inactive
+    log_source_type = Column(String(128))       # Syslog, WinEventLog, CEF…
+    log_forwarding_destination = Column(String(255))
+    last_log_received = Column(DateTime(timezone=True))
+    monitoring_status = Column(String(16))      # monitored | not_monitored | degraded
+    backup_status = Column(String(16))          # protected | unprotected | failed | unknown
+    last_vulnerability_scan = Column(Date)
+
+    # ── Lifecycle / governance ──
+    eol_eos_date = Column(Date)                 # End of Life / End of Support
+    last_reviewed_date = Column(Date)
+    reviewer = Column(String(255))
 
     custom_fields = Column(JSON, nullable=False, default=dict)
     notes = Column(Text)
@@ -82,6 +120,19 @@ class Asset(Base):
     __table_args__ = (
         CheckConstraint(f"category IN {tuple(ASSET_CATEGORIES)}", name="ck_assets_category"),
         CheckConstraint(f"lifecycle_state IN {tuple(LIFECYCLE_STATES)}", name="ck_assets_state"),
+        CheckConstraint(f"criticality IS NULL OR criticality IN {tuple(CRITICALITY)}",
+                        name="ck_assets_criticality"),
+        CheckConstraint(
+            f"data_classification IS NULL OR data_classification IN {tuple(DATA_CLASSIFICATION)}",
+            name="ck_assets_data_class"),
+        CheckConstraint(
+            f"log_source_status IS NULL OR log_source_status IN {tuple(LOG_SOURCE_STATUS)}",
+            name="ck_assets_log_status"),
+        CheckConstraint(
+            f"monitoring_status IS NULL OR monitoring_status IN {tuple(MONITORING_STATUS)}",
+            name="ck_assets_monitoring"),
+        CheckConstraint(f"backup_status IS NULL OR backup_status IN {tuple(BACKUP_STATUS)}",
+                        name="ck_assets_backup"),
         Index("ix_assets_category_state", "category", "lifecycle_state"),
     )
 

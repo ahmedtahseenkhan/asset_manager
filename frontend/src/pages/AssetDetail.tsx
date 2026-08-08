@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssetById, transitionAsset, deleteAsset, getAssets, addRelationship, removeRelationship } from '../api';
 import { StateBadge } from './Assets';
+import { ASSET_GROUPS, ENUM_BADGE } from '../lib/assetSchema';
 import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
@@ -209,30 +210,54 @@ export default function AssetDetail() {
         )}
       </div>
 
-      <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
-          <Field label="Category" value={asset.category} />
-          <Field label="Type" value={asset.asset_type} />
-          <Field label="Serial number" value={asset.serial_number} />
-          <Field label="Vendor" value={asset.vendor} />
-          <Field label="Model" value={asset.model} />
-          <Field label="Location" value={asset.location} />
-          <Field label="Department" value={asset.department} />
-          <Field label="Assigned to" value={asset.assignee_username} />
-          <Field label="Purchase date" value={asset.purchase_date} />
-          <Field label="Purchase cost" value={money} />
-          <Field label="Warranty until" value={asset.warranty_end} />
-          <Field
-            label="Linked device"
-            value={asset.device_id
-              ? <Link to={`/devices/${asset.device_id}`} className="text-indigo-400 hover:underline inline-flex items-center gap-1">
-                  <Laptop className="w-3.5 h-3.5" />{asset.device_hostname ?? `#${asset.device_id}`}
-                </Link>
-              : null}
-          />
+      <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6 space-y-6">
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Overview</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
+            <Field label="Category" value={asset.category} />
+            <Field label="Assigned to" value={asset.assignee_username} />
+            <Field label="Purchase cost" value={money} />
+            <Field
+              label="Linked device"
+              value={asset.device_id
+                ? <Link to={`/devices/${asset.device_id}`} className="text-indigo-400 hover:underline inline-flex items-center gap-1">
+                    <Laptop className="w-3.5 h-3.5" />{asset.device_hostname ?? `#${asset.device_id}`}
+                  </Link>
+                : null}
+            />
+          </div>
         </div>
+
+        {ASSET_GROUPS.map((group) => {
+          const shown = group.fields.filter((f) => f.key !== 'notes');
+          const hasValue = shown.some((f) => (asset as unknown as Record<string, unknown>)[f.key]);
+          if (!hasValue) return null;
+          return (
+            <div key={group.title} className="border-t border-slate-700/50 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">{group.title}</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
+                {shown.map((f) => {
+                  const raw = (asset as unknown as Record<string, unknown>)[f.key];
+                  if (raw == null || raw === '') return null;
+                  const badge = ENUM_BADGE[f.key]?.[String(raw)];
+                  return (
+                    <Field key={f.key} label={f.label} value={
+                      badge
+                        ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${badge}`}>{String(raw).replace(/_/g, ' ')}</span>
+                        : String(raw)
+                    } />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
         {asset.notes && (
-          <p className="text-sm text-slate-300 mt-5 pt-5 border-t border-slate-700/50 whitespace-pre-wrap">{asset.notes}</p>
+          <div className="border-t border-slate-700/50 pt-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2">Notes</p>
+            <p className="text-sm text-slate-300 whitespace-pre-wrap">{asset.notes}</p>
+          </div>
         )}
       </div>
 
