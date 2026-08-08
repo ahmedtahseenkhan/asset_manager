@@ -3,6 +3,7 @@ import type {
   DashboardSummary, CoverageGapSummary, APIResponse, DeviceListOut, Device, ConnectorStatus,
   LicenseStatus, Asset, AssetDetail, AssetListOut, UnlinkedDevice,
   Contract, ContractDetail, ContractListOut, EntitlementDetail, EntitlementListOut,
+  SmtpSettingsOut, AlertRule, NotificationLogEntry,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -141,3 +142,25 @@ export const assignEntitlement = (id: number, target: { asset_id?: number; user_
 
 export const unassignEntitlement = (id: number, assignmentId: number) =>
   apiClient.delete<never, APIResponse<EntitlementDetail>>(`/entitlements/${id}/assign/${assignmentId}`);
+
+// ── ITAM: notifications ───────────────────────────────
+export const getSmtpSettings = () =>
+  apiClient.get<never, APIResponse<SmtpSettingsOut>>('/notifications/smtp');
+
+export const saveSmtpSettings = (data: Record<string, unknown>) =>
+  apiClient.put<never, APIResponse<SmtpSettingsOut>>('/notifications/smtp', data);
+
+export const testSmtp = (recipient: string) =>
+  apiClient.post<never, APIResponse<boolean>>('/notifications/smtp/test', { recipient });
+
+export const getAlertRules = () =>
+  apiClient.get<never, APIResponse<AlertRule[]>>('/notifications/rules');
+
+export const updateAlertRule = (ruleType: string, data: { days_before: number; recipients: string[]; enabled: boolean }) =>
+  apiClient.patch<never, APIResponse<AlertRule>>(`/notifications/rules/${ruleType}`, data);
+
+export const runNotifications = () =>
+  apiClient.post<never, APIResponse<Record<string, string>>>('/notifications/run');
+
+export const getNotificationLog = (limit = 50) =>
+  apiClient.get<never, APIResponse<NotificationLogEntry[]>>('/notifications/log', { params: { limit } });

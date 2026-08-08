@@ -241,3 +241,33 @@ export interface EntitlementListOut {
   page: number;
   size: number;
 }
+
+// ── ITAM: notifications ───────────────────────────────
+export interface SmtpSettingsOut {
+  configured: boolean;
+  host?: string;
+  port?: number;
+  username?: string | null;
+  has_password?: boolean;
+  from_address?: string;
+  use_starttls?: boolean;
+  enabled?: boolean;
+}
+
+export interface AlertRule {
+  rule_type: string;
+  days_before: number;
+  recipients: string[];
+  enabled: boolean;
+}
+
+export interface NotificationLogEntry {
+  id: number;
+  rule_type: string;
+  subject: string;
+  recipients: string[];
+  item_count: number;
+  status: 'sent' | 'failed';
+  error: string | null;
+  created_at: string;
+}

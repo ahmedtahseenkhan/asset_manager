@@ -19,6 +19,14 @@ async def daily_retention():
         await RetentionService.run(session)
 
 
+async def daily_notifications():
+    # Module-level function: the SQLAlchemy jobstore needs a picklable reference.
+    from backend.services.notification_service import NotificationService
+    async for session in get_db():
+        summary = await NotificationService.run_checks(session)
+        logger.info("Daily notification run: %s", summary)
+
+
 class SchedulerService:
     def __init__(self):
         self.scheduler = AsyncIOScheduler(jobstores=jobstores)
@@ -30,6 +38,14 @@ class SchedulerService:
             trigger="cron",
             hour=2, minute=0,
             id="daily_retention",
+            replace_existing=True,
+        )
+        # Daily expiry alerts at 08:00 UTC
+        self.scheduler.add_job(
+            daily_notifications,
+            trigger="cron",
+            hour=8, minute=0,
+            id="daily_notifications",
             replace_existing=True,
         )
         self.scheduler.start()

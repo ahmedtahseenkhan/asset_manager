@@ -9,8 +9,12 @@ from backend.models.asset import Asset, AssetLifecycleEvent
 from backend.models.asset_relationship import AssetRelationship
 from backend.models.contract import Contract
 from backend.models.entitlement import Entitlement, EntitlementAssignment
+from backend.models.notification import AlertRule, NotificationLog, SmtpSettings
 
 __all__ = [
+    "AlertRule",
+    "NotificationLog",
+    "SmtpSettings",
     "AssetRelationship",
     "Contract",
     "Entitlement",

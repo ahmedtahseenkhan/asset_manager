@@ -16,6 +16,7 @@ import License from './pages/License';
 import Reconciliation from './pages/Reconciliation';
 import Contracts from './pages/Contracts';
 import Entitlements from './pages/Entitlements';
+import Notifications from './pages/Notifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,7 @@ function AppRoutes() {
       <Route path="/assets/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/entitlements" element={<ProtectedRoute><Entitlements /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/license" element={<ProtectedRoute><License /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
