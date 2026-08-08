@@ -63,7 +63,7 @@ export default function AssetForm() {
   const group = ASSET_GROUPS[activeTab];
 
   return (
-    <form onSubmit={submit} className="space-y-6 max-w-4xl">
+    <form onSubmit={submit} className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link to={isEdit ? `/assets/${id}` : '/assets'}
@@ -117,9 +117,9 @@ export default function AssetForm() {
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
             {group.fields.map((f) => (
-              <label key={f.key} className={clsx('text-sm text-slate-400', f.full && 'sm:col-span-2')}>
+              <label key={f.key} className={clsx('text-sm text-slate-400', f.full && 'sm:col-span-2 lg:col-span-3')}>
                 <span className="flex items-center gap-1.5">
                   {f.label}
                   {f.fromDevice && <Cpu className="w-3 h-3 text-slate-600" aria-label="auto-filled from linked device" />}
