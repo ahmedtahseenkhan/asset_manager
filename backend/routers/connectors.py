@@ -65,6 +65,8 @@ async def trigger_sync(
     config = await ConnectorService.get_config(db, name)
     if not config:
         raise HTTPException(400, "Connector is not configured yet")
+    if not config.enabled:
+        raise HTTPException(400, "Connector is disabled — enable it before syncing")
 
     await AuditService.log(db, request, admin, "connector.sync_triggered",
                            resource_type="connector", resource_id=name)
