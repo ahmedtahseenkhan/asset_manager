@@ -446,9 +446,19 @@ class NetworkScanConnector(BaseConnector):
         # even when their firewall dropped the ICMP echo.
         arp = await _arp_table()
         local = _local_ip()
-        alive = {ip for ip, ok in ping_ok.items() if ok} | {
-            ip for ip in arp if ip in ping_ok
-        }
+
+        # Proxy-ARP guard: on routed/hotspot networks the gateway answers ARP for
+        # every address with its own MAC. A MAC bound to many IPs is such an
+        # artifact — those ARP-only addresses are not real hosts on our segment, so
+        # trust only genuine ping responders for them (avoids inventing a whole /24).
+        from collections import Counter
+        mac_counts = Counter(m for m in arp.values() if m)
+        proxy_macs = {m for m, c in mac_counts.items() if c >= 8}
+
+        alive = {ip for ip, ok in ping_ok.items() if ok}          # ping responders always
+        for ip, mac in arp.items():
+            if ip in ping_ok and mac not in proxy_macs:            # real, uniquely-MAC'd host
+                alive.add(ip)
 
         now = datetime.now(timezone.utc)
         records: List[RawDeviceRecord] = []

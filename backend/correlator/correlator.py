@@ -47,20 +47,38 @@ class Correlator:
             return [Correlator._json_safe(v) for v in value]
         return value
 
+    # Sources whose identity is the IP/source_uid (one record per address), not the
+    # host itself. These must never be merged by MAC: on proxy-ARP / routed networks
+    # every address answers with the same gateway MAC, which would collapse a whole
+    # subnet into one device.
+    _IP_IDENTITY_SOURCES = {"network_scan"}
+
     @staticmethod
     async def _find_existing_device(
-        db: AsyncSession, fqdn: str, hostname: str, macs: List[str]
+        db: AsyncSession, source_name: str, source_uid: str | None,
+        fqdn: str, hostname: str, macs: List[str],
     ) -> Device | None:
         """
-        Finds an existing device using three criteria in priority order:
+        Finds an existing device to merge into, in priority order:
+        0. Same connector already tracks this exact source_uid  — definitive for re-syncs
         1. FQDN exact match  — most specific; avoids hostname collisions across domains
         2. Hostname match    — fallback when FQDN is unavailable (e.g. CrowdStrike)
-        3. MAC address match — last resort for devices with no name (kiosks, appliances)
-
-        MAC matching serialises the JSON column to text and looks for the quoted MAC
-        string (e.g. `"AA:BB:CC:DD:EE:FF"`) so partial substring false-positives are
-        not possible.
+        3. MAC address match — last resort for nameless devices (skipped for IP-identity
+                               sources like network_scan)
         """
+        # 0. A DeviceSource with this (source_name, source_uid) is the same logical
+        #    entity from this connector — return its device (correct re-sync updates).
+        if source_uid:
+            result = await db.execute(
+                select(Device)
+                .join(DeviceSource, DeviceSource.device_id == Device.id)
+                .where(DeviceSource.source_name == source_name,
+                       DeviceSource.source_uid == source_uid)
+            )
+            dev = result.scalars().first()
+            if dev:
+                return dev
+
         if fqdn:
             result = await db.execute(select(Device).where(Device.fqdn == fqdn))
             dev = result.scalars().first()
@@ -73,10 +91,9 @@ class Correlator:
             if dev:
                 return dev
 
-        # MAC-address fallback — only when the record carries NO name-based identity.
-        # If an FQDN or hostname was present but didn't match, the device is genuinely
-        # new or renamed; using MAC here would risk a false merge.
-        if not fqdn and not hostname:
+        # MAC-address fallback — only when the record carries NO name-based identity,
+        # and never for IP-identity sources (proxy-ARP would mass-merge a subnet).
+        if not fqdn and not hostname and source_name not in Correlator._IP_IDENTITY_SOURCES:
             _SKIP_MACS = {"00:00:00:00:00:00", "FF:FF:FF:FF:FF:FF"}
             for mac in macs:
                 if not mac or mac.upper() in _SKIP_MACS:
@@ -116,8 +133,12 @@ class Correlator:
 
         for raw in raw_devices:
             unified = Normalizer.normalize(source_name, raw)
+            raw_source_uid = raw.get("source_uid")
 
-            device = await Correlator._find_existing_device(db, unified.fqdn, unified.hostname, unified.mac_addresses)
+            device = await Correlator._find_existing_device(
+                db, source_name, raw_source_uid,
+                unified.fqdn, unified.hostname, unified.mac_addresses,
+            )
 
             if not device:
                 device = Device(
