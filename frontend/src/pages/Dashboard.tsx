@@ -1,119 +1,114 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardSummary } from '../api';
-import { Laptop, Activity, AlertCircle, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+
+const CHART_COLORS = ['#7c6ef0', '#2dd4bf', '#f5b544', '#f472b6', '#60a5fa'];
+
+const TOOLTIP = {
+  contentStyle: {
+    backgroundColor: '#15151a', border: '1px solid #2a2a30', borderRadius: '10px',
+    color: '#f0f0f3', fontSize: '12px', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.6)',
+  },
+  itemStyle: { color: '#c3c3cc' },
+  labelStyle: { color: '#8e8e97' },
+};
+
+function Stat({ label, value, icon: Icon, tint, hint, onClick }: {
+  label: string; value: number; icon: typeof Laptop; tint: string; hint?: string; onClick?: () => void;
+}) {
+  const Cmp = onClick ? 'button' : 'div';
+  return (
+    <Cmp
+      onClick={onClick}
+      className={`group text-left w-full bg-slate-800/70 backdrop-blur-sm p-5 rounded-xl border border-slate-700/60 transition-all duration-200 ${
+        onClick ? 'hover:border-slate-600 hover:-translate-y-0.5' : ''}`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <span className={`w-9 h-9 rounded-lg grid place-items-center ${tint}`}><Icon className="w-[18px] h-[18px]" /></span>
+        {onClick && <ArrowUpRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />}
+      </div>
+      <p className="text-3xl font-semibold text-white tracking-tight tabular-nums">{value.toLocaleString()}</p>
+      <p className="text-sm text-slate-400 mt-1">{label}</p>
+      {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
+    </Cmp>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { data: res, isLoading: loading, refetch } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: getDashboardSummary,
+  const { data: res, isLoading: loading, refetch, isFetching } = useQuery({
+    queryKey: ['dashboard'], queryFn: getDashboardSummary,
   });
-
   const data = res?.data;
 
-  if (loading && !data) return <div className="animate-pulse flex space-x-4 text-slate-400">Loading stats...</div>;
+  if (loading && !data) return <div className="text-slate-400">Loading…</div>;
   if (!data) return <div className="text-rose-400">Failed to load stats.</div>;
-
-  const COLORS = ['#6366f1', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard Overview</h1>
-        <button onClick={() => refetch()} className="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
-            <RefreshCw className="w-5 h-5 text-slate-300" />
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-white">Overview</h1>
+          <p className="text-sm text-slate-500 mt-1">Unified state of the estate across all connectors.</p>
+        </div>
+        <button onClick={() => refetch()}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-300 bg-slate-800/70 border border-slate-700/60 rounded-lg hover:border-slate-600 hover:text-white transition-colors">
+          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50 flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-xl">
-            <Laptop className="w-8 h-8 text-indigo-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-400">Total Devices</p>
-            <p className="text-3xl font-bold text-white mt-1">{data.total_devices}</p>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/20 rounded-xl">
-            <Activity className="w-8 h-8 text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-400">Active Assets</p>
-            <p className="text-3xl font-bold text-white mt-1">{data.active_devices}</p>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50 flex items-center gap-4">
-          <div className="p-3 bg-rose-500/20 rounded-xl">
-            <AlertCircle className="w-8 h-8 text-rose-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-400">Stale Devices</p>
-            <p className="text-3xl font-bold text-white mt-1">{data.stale_devices}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigate('/coverage-gaps')}
-          className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30 hover:border-amber-400/60 flex items-center gap-4 transition-colors text-left w-full"
-        >
-          <div className="p-3 bg-amber-500/20 rounded-xl">
-            <ShieldAlert className="w-8 h-8 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-400">Coverage Gaps</p>
-            <p className="text-3xl font-bold text-white mt-1">{data.coverage_gap_count ?? 0}</p>
-            <p className="text-xs text-amber-400 mt-0.5">devices without full coverage →</p>
-          </div>
-        </button>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stat label="Total devices" value={data.total_devices} icon={Laptop} tint="bg-indigo-500/15 text-indigo-400" />
+        <Stat label="Active" value={data.active_devices} icon={Activity} tint="bg-emerald-500/15 text-emerald-400" />
+        <Stat label="Stale" value={data.stale_devices} icon={MoonStar} tint="bg-slate-500/15 text-slate-400" />
+        <Stat label="Coverage gaps" value={data.coverage_gap_count ?? 0} icon={ShieldAlert}
+          tint="bg-amber-500/15 text-amber-400" hint="without full coverage" onClick={() => navigate('/coverage-gaps')} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50">
-          <h2 className="text-lg font-medium text-white mb-6">OS Distribution</h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height={300}>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* OS distribution */}
+        <div className="lg:col-span-2 bg-slate-800/70 backdrop-blur-sm p-6 rounded-xl border border-slate-700/60">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-slate-200">OS Distribution</h2>
+            <span className="text-xs text-slate-500">{data.total_devices} devices</span>
+          </div>
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie
-                  data={data.os_distribution}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {data.os_distribution.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
+                <Pie data={data.os_distribution} cx="50%" cy="50%" innerRadius={62} outerRadius={100}
+                  paddingAngle={3} dataKey="value" stroke="none">
+                  {data.os_distribution.map((_e, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
-                <Tooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                    itemStyle={{ color: '#e2e8f0' }}
-                />
+                <Tooltip {...TOOLTIP} />
               </PieChart>
             </ResponsiveContainer>
           </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+            {data.os_distribution.map((e, i) => (
+              <div key={e.name} className="flex items-center gap-1.5 text-xs text-slate-400">
+                <span className="w-2 h-2 rounded-sm" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                {e.name} <span className="text-slate-500 tabular-nums">{e.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50">
-          <h2 className="text-lg font-medium text-white mb-6">Devices by Source</h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.source_distribution} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip
-                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                    cursor={{fill: '#334155'}}
-                />
-                <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+        {/* Devices by source */}
+        <div className="lg:col-span-3 bg-slate-800/70 backdrop-blur-sm p-6 rounded-xl border border-slate-700/60">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-200">Devices by Source</h2>
+            <span className="text-xs text-slate-500">{data.source_distribution.length} connectors</span>
+          </div>
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={data.source_distribution} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#26262d" vertical={false} />
+                <XAxis dataKey="name" stroke="#6a6a73" tick={{ fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#26262d' }} />
+                <YAxis stroke="#6a6a73" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip {...TOOLTIP} cursor={{ fill: 'rgba(124,110,240,0.08)' }} />
+                <Bar dataKey="value" fill="#7c6ef0" radius={[5, 5, 0, 0]} maxBarSize={56} />
               </BarChart>
             </ResponsiveContainer>
           </div>

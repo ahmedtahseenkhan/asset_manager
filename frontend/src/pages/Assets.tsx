@@ -60,28 +60,30 @@ export default function Assets() {
 
   const input = 'w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
+  const hasFilters = search || category || state;
+  const rangeFrom = total === 0 ? 0 : (page - 1) * size + 1;
+  const rangeTo = Math.min(page * size, total);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Boxes className="w-8 h-8 text-indigo-400" />
-            Assets
-          </h1>
-          <p className="text-slate-400 mt-1">Managed IT asset inventory — {total} record{total !== 1 ? 's' : ''}.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-white">Assets</h1>
+          <p className="text-sm text-slate-500 mt-1">Managed inventory — <span className="tabular-nums">{total}</span> record{total !== 1 ? 's' : ''}.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <button
             onClick={() => navigate('/assets/reconcile')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800/70 hover:border-slate-600 text-slate-200 text-sm font-medium rounded-lg border border-slate-700/60 transition-colors"
           >
-            <GitMerge className="w-4 h-4" />
-            Reconcile{unlinkedCount > 0 ? ` (${unlinkedCount})` : ''}
+            <GitMerge className="w-4 h-4 text-slate-400" />
+            Reconcile
+            {unlinkedCount > 0 && <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500/20 text-amber-400 tabular-nums">{unlinkedCount}</span>}
           </button>
           {canEdit && (
             <button
               onClick={() => navigate('/assets/new')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors shadow-glow"
             >
               <Plus className="w-4 h-4" /> New asset
             </button>
@@ -89,9 +91,9 @@ export default function Assets() {
         </div>
       </div>
 
-      <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-3 bg-slate-800/50">
-          <div className="relative flex-1 max-w-md">
+      <div className="bg-slate-800/70 backdrop-blur-sm border border-slate-700/60 rounded-xl overflow-hidden">
+        <div className="p-3 border-b border-slate-700/60 flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
@@ -101,11 +103,11 @@ export default function Assets() {
               className={`${input} pl-9`}
             />
           </div>
-          <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} className={clsx(input, 'sm:w-44')}>
+          <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} className={clsx(input, 'sm:w-40')}>
             <option value="">All categories</option>
             {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={state} onChange={(e) => { setState(e.target.value); setPage(1); }} className={clsx(input, 'sm:w-44')}>
+          <select value={state} onChange={(e) => { setState(e.target.value); setPage(1); }} className={clsx(input, 'sm:w-40')}>
             <option value="">All states</option>
             {STATES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
@@ -114,48 +116,64 @@ export default function Assets() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold text-slate-400 tracking-wider">
-                <th className="px-6 py-4">Tag</th>
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">IP</th>
-                <th className="px-6 py-4">OS</th>
-                <th className="px-6 py-4">Criticality</th>
-                <th className="px-6 py-4">Log Source</th>
-                <th className="px-6 py-4">State</th>
-                <th className="px-6 py-4" />
+              <tr className="border-b border-slate-700/60 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="px-5 py-3 font-semibold">Asset</th>
+                <th className="px-5 py-3 font-semibold">IP</th>
+                <th className="px-5 py-3 font-semibold">OS</th>
+                <th className="px-5 py-3 font-semibold">Criticality</th>
+                <th className="px-5 py-3 font-semibold">Log Source</th>
+                <th className="px-5 py-3 font-semibold">State</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/50">
+            <tbody className="divide-y divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-500">Loading…</td></tr>
+                [...Array(6)].map((_, i) => (
+                  <tr key={i}><td colSpan={7} className="px-5 py-3.5">
+                    <div className="h-5 bg-slate-800/70 rounded animate-pulse" style={{ width: `${70 - i * 6}%` }} />
+                  </td></tr>
+                ))
               ) : items.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-500">No assets yet.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-16 text-center">
+                  <Boxes className="w-9 h-9 text-slate-700 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">{hasFilters ? 'No assets match your filters.' : 'No assets yet.'}</p>
+                  {!hasFilters && canEdit && <p className="text-xs text-slate-600 mt-1">Create one, or adopt discovered devices via Reconcile.</p>}
+                </td></tr>
               ) : items.map((a) => (
                 <tr
                   key={a.id}
                   onClick={() => navigate(`/assets/${a.id}`)}
-                  className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                  className="group hover:bg-slate-800/50 transition-colors cursor-pointer"
                 >
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-300">{a.asset_tag}</td>
-                  <td className="px-6 py-4 font-medium text-slate-200">{a.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400 font-mono">{a.ip_address ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{a.os_name ?? '—'}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-slate-800 ring-1 ring-slate-700 grid place-items-center text-[11px] font-semibold text-slate-300 shrink-0 uppercase">
+                        {(a.name || '?').slice(0, 2)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">{a.name}</p>
+                        <p className="font-mono text-[11px] text-indigo-400/80">{a.asset_tag}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-sm text-slate-400 font-mono">{a.ip_address ?? <span className="text-slate-600">—</span>}</td>
+                  <td className="px-5 py-3 text-sm text-slate-400">{a.os_name ?? <span className="text-slate-600">—</span>}</td>
+                  <td className="px-5 py-3">
                     {a.criticality
-                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.criticality[a.criticality]}`}>{a.criticality}</span>
+                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.criticality[a.criticality]}`}>{a.criticality}</span>
                       : <span className="text-slate-600">—</span>}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     {a.log_source_status
-                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.log_source_status[a.log_source_status]}`}>{a.log_source_status.replace(/_/g, ' ')}</span>
+                      ? <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ring-1 ring-inset ${ENUM_BADGE.log_source_status[a.log_source_status]}`}>{a.log_source_status.replace(/_/g, ' ')}</span>
                       : <span className="text-slate-600">—</span>}
                   </td>
-                  <td className="px-6 py-4"><StateBadge state={a.lifecycle_state} /></td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-5 py-3"><StateBadge state={a.lifecycle_state} /></td>
+                  <td className="px-5 py-3 text-right">
                     {canEdit && (
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/assets/${a.id}/edit`); }}
-                        className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-600 hover:text-white hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
@@ -168,23 +186,23 @@ export default function Assets() {
           </table>
         </div>
 
-        {pages > 1 && (
-          <div className="p-4 border-t border-slate-700/50 flex items-center justify-between text-sm text-slate-400">
-            <span>Page {page} of {pages}</span>
-            <div className="flex gap-2">
+        <div className="px-5 py-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
+          <span className="tabular-nums">{rangeFrom}–{rangeTo} of {total}</span>
+          {pages > 1 && (
+            <div className="flex items-center gap-1">
               <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
-                className="p-2 bg-slate-700/50 rounded-lg disabled:opacity-40 hover:bg-slate-700">
+                className="p-1.5 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-slate-800 disabled:hover:bg-transparent transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
+              <span className="px-2 tabular-nums">{page} / {pages}</span>
               <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)}
-                className="p-2 bg-slate-700/50 rounded-lg disabled:opacity-40 hover:bg-slate-700">
+                className="p-1.5 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-slate-800 disabled:hover:bg-transparent transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-
     </div>
   );
 }
