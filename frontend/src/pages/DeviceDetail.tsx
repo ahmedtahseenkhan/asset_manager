@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getDeviceById } from '../api';
+import { getDeviceById, getDeviceSoftware } from '../api';
 import type { DeviceSource } from '../types';
 import {
   ArrowLeft, Laptop, Clock, Globe, Network, Cpu, Radar,
@@ -74,6 +74,35 @@ function RawDataAccordion({ source }: { source: DeviceSource }) {
   );
 }
 
+function SoftwareCard({ deviceId }: { deviceId: number }) {
+  const [q, setQ] = useState('');
+  const { data } = useQuery({ queryKey: ['device-software', deviceId], queryFn: () => getDeviceSoftware(deviceId) });
+  const all = data?.data ?? [];
+  const filtered = q ? all.filter((s: any) => s.name.toLowerCase().includes(q.toLowerCase())) : all;
+  return (
+    <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Installed Software ({all.length})</h2>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter…"
+          className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48" />
+      </div>
+      <div className="max-h-72 overflow-y-auto">
+        <table className="w-full text-left border-collapse">
+          <tbody className="divide-y divide-slate-700/40">
+            {filtered.map((s: any) => (
+              <tr key={s.id}>
+                <td className="py-1.5 text-sm text-slate-200">{s.name}</td>
+                <td className="py-1.5 text-sm text-slate-500 font-mono text-right">{s.version ?? ''}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && <tr><td className="py-4 text-sm text-slate-500">No matches.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between py-3 border-b border-slate-700/40 last:border-0">
@@ -124,6 +153,7 @@ export default function DeviceDetail() {
   // Surface the network-scan enrichment (stored per-source in raw_data.extra).
   const scanSource = device.sources.find((s) => s.raw_data?.extra);
   const extra = scanSource?.raw_data?.extra as Record<string, unknown> | undefined;
+  const hasAgent = device.sources.some((s) => s.source_name === 'agent');
 
   return (
     <div className="space-y-6">
@@ -299,6 +329,9 @@ export default function DeviceDetail() {
           </p>
         </div>
       )}
+
+      {/* Installed software (from agent) */}
+      {hasAgent && <SoftwareCard deviceId={device.id} />}
 
       {/* Raw source data */}
       {device.sources.length > 0 && (

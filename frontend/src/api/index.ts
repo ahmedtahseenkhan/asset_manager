@@ -164,3 +164,37 @@ export const runNotifications = () =>
 
 export const getNotificationLog = (limit = 50) =>
   apiClient.get<never, APIResponse<NotificationLogEntry[]>>('/notifications/log', { params: { limit } });
+
+// ── Phase 1: Agents ───────────────────────────────────────
+export const getAgentTokens = () => apiClient.get<never, APIResponse<any[]>>('/agents/tokens');
+export const createAgentToken = (name: string) => apiClient.post<never, APIResponse<any>>('/agents/tokens', { name });
+export const toggleAgentToken = (id: number) => apiClient.patch<never, APIResponse<boolean>>(`/agents/tokens/${id}`);
+export const getDeviceSoftware = (id: number) => apiClient.get<never, APIResponse<any[]>>(`/devices/${id}/software`);
+
+// ── Phase 2: SAM ──────────────────────────────────────────
+export const getSoftwareInventory = () => apiClient.get<never, APIResponse<any[]>>('/sam/software');
+export const getLicensePosition = () => apiClient.get<never, APIResponse<any>>('/sam/license-position');
+
+// ── Phase 3: CMDB audit ───────────────────────────────────
+export const getCmdbAudit = () => apiClient.get<never, APIResponse<any>>('/cmdb/audit');
+
+// ── Phase 4: CAASM posture + vulnerabilities ──────────────
+export const getPostureSummary = () => apiClient.get<never, APIResponse<any>>('/posture/summary');
+export const getLogCoverage = () => apiClient.get<never, APIResponse<any>>('/posture/log-coverage');
+export const getVulnSummary = () => apiClient.get<never, APIResponse<any>>('/vulnerabilities/summary');
+export const getAssetVulns = (id: number) => apiClient.get<never, APIResponse<any[]>>(`/assets/${id}/vulnerabilities`);
+export const importVulnerabilities = (file: File) => {
+  const f = new FormData(); f.append('file', file);
+  return apiClient.post<never, APIResponse<any>>('/vulnerabilities/import', f, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+
+// ── Phase 5: reports + import + bulk ──────────────────────
+export const getCostReport = () => apiClient.get<never, APIResponse<any>>('/reports/cost');
+export const getEolReport = () => apiClient.get<never, APIResponse<any>>('/reports/eol');
+export const getComplianceReport = () => apiClient.get<never, APIResponse<any>>('/reports/compliance');
+export const bulkUpdateAssets = (asset_ids: number[], fields: Record<string, unknown>) =>
+  apiClient.post<never, APIResponse<any>>('/assets/bulk-update', { asset_ids, fields });
+export const importAssets = (file: File) => {
+  const f = new FormData(); f.append('file', file);
+  return apiClient.post<never, APIResponse<any>>('/assets/import', f, { headers: { 'Content-Type': 'multipart/form-data' } });
+};

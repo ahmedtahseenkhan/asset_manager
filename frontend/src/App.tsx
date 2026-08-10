@@ -18,6 +18,10 @@ import Reconciliation from './pages/Reconciliation';
 import Contracts from './pages/Contracts';
 import Entitlements from './pages/Entitlements';
 import Notifications from './pages/Notifications';
+import Posture from './pages/Posture';
+import Software from './pages/Software';
+import Agents from './pages/Agents';
+import Reports from './pages/Reports';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +61,10 @@ function AppRoutes() {
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/entitlements" element={<ProtectedRoute><Entitlements /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      <Route path="/posture" element={<ProtectedRoute><Posture /></ProtectedRoute>} />
+      <Route path="/software" element={<ProtectedRoute><Software /></ProtectedRoute>} />
+      <Route path="/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/license" element={<ProtectedRoute><License /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

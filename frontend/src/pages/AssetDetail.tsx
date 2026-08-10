@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssetById, transitionAsset, deleteAsset, getAssets, addRelationship, removeRelationship } from '../api';
+import { getAssetById, transitionAsset, deleteAsset, getAssets, addRelationship, removeRelationship, getAssetVulns } from '../api';
 import { StateBadge } from './Assets';
 import { ASSET_GROUPS, ENUM_BADGE } from '../lib/assetSchema';
-import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X, Bug } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 
@@ -123,6 +123,37 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
           {error && <p className="text-sm text-rose-400 mt-2">{error}</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+const VSEV: Record<string, string> = {
+  critical: 'bg-rose-500/20 text-rose-400 ring-rose-500/30',
+  high: 'bg-orange-500/20 text-orange-400 ring-orange-500/30',
+  medium: 'bg-yellow-500/20 text-yellow-400 ring-yellow-500/30',
+  low: 'bg-blue-500/20 text-blue-400 ring-blue-500/30',
+  info: 'bg-slate-500/20 text-slate-400 ring-slate-500/30',
+};
+
+function VulnerabilitiesCard({ assetId }: { assetId: number }) {
+  const { data } = useQuery({ queryKey: ['asset-vulns', assetId], queryFn: () => getAssetVulns(assetId) });
+  const vulns = data?.data ?? [];
+  if (vulns.length === 0) return null;
+  return (
+    <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+      <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+        <Bug className="w-4 h-4" /> Vulnerabilities ({vulns.length})
+      </h2>
+      <ul className="space-y-2">
+        {vulns.map((v: any) => (
+          <li key={v.id} className="flex items-center gap-3 text-sm">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset ${VSEV[v.severity]}`}>{v.severity}</span>
+            {v.cve_id && <span className="font-mono text-xs text-slate-400">{v.cve_id}</span>}
+            <span className="text-slate-200">{v.title}</span>
+            {v.cvss && <span className="ml-auto text-xs text-slate-500">CVSS {v.cvss}</span>}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -287,6 +318,8 @@ export default function AssetDetail() {
           {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
         </div>
       )}
+
+      <VulnerabilitiesCard assetId={assetId} />
 
       <RelationshipsCard assetId={assetId} canEdit={canEdit} />
 

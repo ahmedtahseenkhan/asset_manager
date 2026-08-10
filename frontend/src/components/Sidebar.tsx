@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Laptop, Plug, LogOut, Shield, ShieldAlert, Settings, Boxes, KeyRound, FileText, KeySquare, BellRing } from 'lucide-react';
+import { LayoutDashboard, Laptop, Plug, LogOut, Shield, ShieldAlert, Settings, Boxes, KeyRound, FileText, KeySquare, BellRing, ShieldCheck, Scale, Radar, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
 
@@ -12,9 +12,13 @@ function Sidebar() {
     { to: '/devices',       label: 'Devices',        icon: Laptop,          adminOnly: false },
     { to: '/contracts',     label: 'Contracts',      icon: FileText,        adminOnly: false },
     { to: '/entitlements',  label: 'Entitlements',   icon: KeySquare,       adminOnly: false },
+    { to: '/software',      label: 'Software',       icon: Scale,           adminOnly: false },
+    { to: '/posture',       label: 'Security Posture',icon: ShieldCheck,    adminOnly: false },
+    { to: '/reports',       label: 'Reports',        icon: BarChart3,       adminOnly: false },
     { to: '/coverage-gaps', label: 'Coverage Gaps',  icon: ShieldAlert,     adminOnly: false },
     { to: '/connectors',    label: 'Connectors',     icon: Plug,            adminOnly: true  },
     { to: '/notifications', label: 'Notifications',  icon: BellRing,        adminOnly: true  },
+    { to: '/agents',        label: 'Agents',         icon: Radar,           adminOnly: true  },
     { to: '/license',       label: 'License',        icon: KeyRound,        adminOnly: true  },
     { to: '/admin',         label: 'Administration', icon: Settings,        adminOnly: true  },
   ].filter((l) => !l.adminOnly || user?.role === 'admin');
