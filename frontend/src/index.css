@@ -11,12 +11,9 @@
 
   body {
     @apply bg-slate-900 text-slate-100 antialiased;
-    /* Soft, airy canvas: a faint green glow top-right + a whisper-light grid. */
+    /* InvestX-style airy canvas: a soft green wash top-right, clean (no grid). */
     background-image:
-      radial-gradient(50rem 34rem at 100% -8%, rgba(34, 197, 94, 0.06), transparent 60%),
-      linear-gradient(rgba(16, 24, 40, 0.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(16, 24, 40, 0.018) 1px, transparent 1px);
-    background-size: 100% 100%, 46px 46px, 46px 46px;
+      radial-gradient(46rem 30rem at 100% -6%, rgba(34, 197, 94, 0.08), transparent 62%);
     background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
   }

@@ -49,7 +49,7 @@ function Sidebar() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <aside className="w-64 bg-slate-950/60 backdrop-blur-xl border-r border-slate-700 flex flex-col min-h-screen fixed">
+    <aside className="w-64 bg-slate-950 border-r border-slate-700 flex flex-col min-h-screen fixed">
       {/* Brand */}
       <div className="h-16 px-5 flex items-center gap-2.5 border-b border-slate-700">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center shadow-glow">

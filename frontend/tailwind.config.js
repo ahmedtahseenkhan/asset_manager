@@ -20,24 +20,24 @@ export default {
         // LIGHT theme. The app was authored dark (bg-slate-900 canvas, text-white),
         // so `slate` is inverted: high numbers = light surfaces, low numbers = dark text.
         slate: {
-          50:  '#0f1419',   // near-black — headings / primary (replaces text-white)
-          100: '#1a212b',   // strong text
-          200: '#2c3440',   // primary body text
-          300: '#414b58',   // body text
-          400: '#67717f',   // secondary text
-          500: '#8b95a3',   // muted / placeholder
-          600: '#aab3bf',   // very muted ("—")
-          700: '#e6e9ef',   // hairline borders / dividers
+          50:  '#101828',   // near-black — headings / primary (replaces text-white)
+          100: '#1d2939',   // strong text
+          200: '#344054',   // primary body text
+          300: '#475467',   // body text
+          400: '#667085',   // secondary text
+          500: '#98a2b3',   // muted / placeholder
+          600: '#b6bdc9',   // very muted ("—")
+          700: '#e6e8ef',   // hairline borders / dividers
           800: '#ffffff',   // cards / panels
-          900: '#eef1f6',   // canvas
+          900: '#edeef4',   // canvas — cool lavender-grey (InvestX)
           950: '#ffffff',   // elevated (sidebar)
         },
-        // Emerald/green accent (replaces indigo) — the InvestX-style signal green.
+        // InvestX signal green — vibrant, used prominently as the hero accent.
         indigo: {
           300: '#86efac',
-          400: '#15a34a',   // accent text / icons on white
-          500: '#22c55e',   // bright green (tints, charts)
-          600: '#16a34a',   // primary buttons (white text)
+          400: '#1eb854',   // accent text / icons on white — vibrant + readable
+          500: '#22c55e',   // bright green (tints, charts, active)
+          600: '#16a34a',   // primary buttons (white text, AA-large)
           700: '#15803d',
           800: '#166534',
           900: '#14532d',
