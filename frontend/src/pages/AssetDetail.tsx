@@ -4,11 +4,95 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssetById, transitionAsset, deleteAsset, getAssets, addRelationship, removeRelationship, getAssetVulns } from '../api';
 import { StateBadge } from './Assets';
 import { ASSET_GROUPS, ENUM_BADGE } from '../lib/assetSchema';
-import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X, Bug } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X, Bug, Plus, Search } from 'lucide-react';
 import { format } from 'date-fns';
+import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
 const REL_TYPES = ['depends_on', 'installed_on', 'connected_to', 'hosts', 'part_of', 'backs_up'];
+const REL_LABELS: Record<string, string> = {
+  depends_on: 'Depends on', installed_on: 'Installed on', connected_to: 'Connected to',
+  hosts: 'Hosts', part_of: 'Part of', backs_up: 'Backs up',
+};
+
+// Canonical lifecycle order for the visual stepper.
+const LIFECYCLE_FLOW = ['requested', 'ordered', 'in_stock', 'deployed', 'maintenance', 'retired'];
+const STATE_DOT: Record<string, string> = {
+  requested: 'bg-slate-400', ordered: 'bg-blue-400', in_stock: 'bg-cyan-400',
+  deployed: 'bg-emerald-400', maintenance: 'bg-yellow-400', retired: 'bg-rose-400',
+};
+
+function LifecycleCard({
+  current, allowed, canEdit, note, setNote, pending, onTransition, error,
+}: {
+  current: string; allowed: string[]; canEdit: boolean;
+  note: string; setNote: (v: string) => void; pending: boolean;
+  onTransition: (s: string) => void; error: string;
+}) {
+  const curIdx = LIFECYCLE_FLOW.indexOf(current);
+  return (
+    <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+      <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Lifecycle</h2>
+
+      {/* Stepper */}
+      <div className="flex items-center mb-6 overflow-x-auto pb-1">
+        {LIFECYCLE_FLOW.map((s, i) => {
+          const done = i < curIdx;
+          const active = s === current;
+          return (
+            <div key={s} className="flex items-center shrink-0">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className={clsx(
+                  'w-3.5 h-3.5 rounded-full ring-2 transition-colors',
+                  active ? `${STATE_DOT[s]} ring-white/30 scale-125`
+                    : done ? `${STATE_DOT[s]} ring-transparent`
+                    : 'bg-slate-700 ring-transparent',
+                )} />
+                <span className={clsx('text-[11px] whitespace-nowrap',
+                  active ? 'text-white font-semibold' : done ? 'text-slate-300' : 'text-slate-600')}>
+                  {s.replace('_', ' ')}
+                </span>
+              </div>
+              {i < LIFECYCLE_FLOW.length - 1 && (
+                <div className={clsx('h-0.5 w-8 sm:w-14 mx-1 mb-5', i < curIdx ? 'bg-emerald-500/50' : 'bg-slate-700')} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      {canEdit && allowed.length > 0 ? (
+        <div className="pt-5 border-t border-slate-700/50">
+          <p className="text-xs text-slate-500 mb-3">Move this asset to its next state:</p>
+          <div className="flex flex-col lg:flex-row gap-3">
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional note for the audit trail…"
+              className="flex-1 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <div className="flex flex-wrap gap-2">
+              {allowed.map((s) => (
+                <button key={s} disabled={pending} onClick={() => onTransition(s)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+                  <ArrowRight className="w-4 h-4" />
+                  <span className={`w-2 h-2 rounded-full ${STATE_DOT[s]}`} />
+                  {s.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500 pt-5 border-t border-slate-700/50">
+          {allowed.length === 0 ? 'This is a terminal state — no further transitions.' : 'Read-only — you cannot change lifecycle state.'}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boolean }) {
   const queryClient = useQueryClient();
@@ -48,79 +132,102 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
   });
 
   const input = 'px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500';
-  const edges = [...(rels?.outgoing ?? []), ...(rels?.incoming ?? []).map((e) => ({ ...e, incoming: true }))];
+  const outgoing = rels?.outgoing ?? [];
+  const incoming = rels?.incoming ?? [];
+  const [adding, setAdding] = useState(false);
+
+  const EdgeRow = ({ e, dir }: { e: any; dir: 'out' | 'in' }) => (
+    <div className="group flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-900/40 border border-slate-700/40 hover:border-slate-600 transition-colors">
+      <span className={clsx('px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ring-1 ring-inset',
+        dir === 'out' ? 'bg-indigo-500/15 text-indigo-300 ring-indigo-500/25' : 'bg-purple-500/15 text-purple-300 ring-purple-500/25')}>
+        {e.label}
+      </span>
+      <Link to={`/assets/${e.asset.id}`} className="flex items-center gap-2 min-w-0 hover:underline">
+        <span className="text-slate-200 truncate">{e.asset.name}</span>
+        <span className="font-mono text-xs text-slate-500 shrink-0">{e.asset.asset_tag}</span>
+      </Link>
+      <StateBadge state={e.asset.lifecycle_state} />
+      {canEdit && (
+        <button onClick={() => remove.mutate(e.id)}
+          className="ml-auto p-1 text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-      <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-        <Share2 className="w-4 h-4" /> Relationships
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <Share2 className="w-4 h-4" /> Relationships
+          <span className="text-slate-500 normal-case font-normal">({outgoing.length + incoming.length})</span>
+        </h2>
+        {canEdit && !adding && (
+          <button onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg ring-1 ring-inset ring-indigo-500/25 transition-colors">
+            <Plus className="w-3.5 h-3.5" /> Add relationship
+          </button>
+        )}
+      </div>
 
-      {edges.length === 0 ? (
-        <p className="text-sm text-slate-500">No relationships mapped yet.</p>
-      ) : (
-        <ul className="space-y-2">
-          {edges.map((e) => (
-            <li key={`${'incoming' in e && e.incoming ? 'in' : 'out'}-${e.id}`} className="flex items-center gap-2 text-sm">
-              <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-xs font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/20">
-                {e.label}
-              </span>
-              <Link to={`/assets/${e.asset.id}`} className="text-slate-200 hover:text-indigo-400 hover:underline">
-                {e.asset.name}
-              </Link>
-              <span className="font-mono text-xs text-slate-500">{e.asset.asset_tag}</span>
-              <StateBadge state={e.asset.lifecycle_state} />
-              {canEdit && (
-                <button
-                  onClick={() => remove.mutate(e.id)}
-                  className="ml-auto p-1 text-slate-600 hover:text-rose-400 rounded transition-colors"
-                  title="Remove relationship"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {canEdit && (
-        <div className="mt-5 pt-5 border-t border-slate-700/50">
-          <div className="flex flex-col sm:flex-row gap-2">
+      {/* Add form (collapsible) */}
+      {canEdit && adding && (
+        <div className="mb-4 p-4 rounded-xl bg-slate-900/40 border border-slate-700/50">
+          <div className="flex flex-col lg:flex-row gap-2 items-stretch">
             <span className="self-center text-sm text-slate-400 shrink-0">This asset</span>
-            <select value={relType} onChange={(e) => setRelType(e.target.value)} className={`${input} sm:w-40`}>
-              {REL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+            <select value={relType} onChange={(e) => setRelType(e.target.value)} className={`${input} lg:w-44`}>
+              {REL_TYPES.map((t) => <option key={t} value={t}>{REL_LABELS[t]}</option>)}
             </select>
             <div className="relative flex-1">
-              <input
-                value={targetSearch}
-                onChange={(e) => { setTargetSearch(e.target.value); setTargetId(null); }}
-                placeholder="Search target asset…"
-                className={`${input} w-full`}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <input value={targetSearch}
+                  onChange={(e) => { setTargetSearch(e.target.value); setTargetId(null); }}
+                  placeholder="Search target asset…" className={`${input} w-full pl-9`} autoFocus />
+              </div>
               {targetSearch && !targetId && (
                 <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                   {(candidates?.data?.items ?? []).filter((a) => a.id !== assetId).map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => { setTargetId(a.id); setTargetSearch(`${a.asset_tag} — ${a.name}`); }}
-                      className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700/60"
-                    >
+                    <button key={a.id} onClick={() => { setTargetId(a.id); setTargetSearch(`${a.asset_tag} — ${a.name}`); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700/60">
                       <span className="font-mono text-xs text-indigo-300 mr-2">{a.asset_tag}</span>{a.name}
                     </button>
                   ))}
+                  {(candidates?.data?.items ?? []).filter((a) => a.id !== assetId).length === 0 &&
+                    <p className="px-3 py-2 text-sm text-slate-500">No matches.</p>}
                 </div>
               )}
             </div>
-            <button
-              disabled={!targetId || add.isPending}
-              onClick={() => add.mutate()}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors"
-            >
-              Add
-            </button>
+            <button disabled={!targetId || add.isPending} onClick={() => add.mutate()}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg">Add</button>
+            <button onClick={() => { setAdding(false); setTargetSearch(''); setTargetId(null); }}
+              className="px-3 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
           </div>
           {error && <p className="text-sm text-rose-400 mt-2">{error}</p>}
+        </div>
+      )}
+
+      {outgoing.length + incoming.length === 0 ? (
+        <div className="text-center py-8">
+          <Share2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-500">No relationships mapped yet.</p>
+          {canEdit && <p className="text-xs text-slate-600 mt-1">Map dependencies to build the CMDB graph.</p>}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {outgoing.length > 0 && (
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Outgoing</p>
+              <div className="space-y-2">{outgoing.map((e) => <EdgeRow key={`o-${e.id}`} e={e} dir="out" />)}</div>
+            </div>
+          )}
+          {incoming.length > 0 && (
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Incoming</p>
+              <div className="space-y-2">{incoming.map((e) => <EdgeRow key={`i-${e.id}`} e={e} dir="in" />)}</div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -292,52 +399,38 @@ export default function AssetDetail() {
         )}
       </div>
 
-      {canEdit && asset.allowed_transitions.length > 0 && (
-        <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-          <h2 className="text-sm font-semibold text-slate-300 mb-3">Change lifecycle state</h2>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note for the audit trail…"
-              className="flex-1 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <div className="flex gap-2">
-              {asset.allowed_transitions.map((s) => (
-                <button
-                  key={s}
-                  disabled={transition.isPending}
-                  onClick={() => transition.mutate(s)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors"
-                >
-                  <ArrowRight className="w-4 h-4" /> {s.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
-          {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
-        </div>
-      )}
+      <LifecycleCard
+        current={asset.lifecycle_state}
+        allowed={asset.allowed_transitions}
+        canEdit={canEdit}
+        note={note}
+        setNote={setNote}
+        pending={transition.isPending}
+        onTransition={(s) => transition.mutate(s)}
+        error={error}
+      />
 
       <VulnerabilitiesCard assetId={assetId} />
 
       <RelationshipsCard assetId={assetId} canEdit={canEdit} />
 
       <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-        <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5 flex items-center gap-2">
           <History className="w-4 h-4" /> Lifecycle history
+          <span className="text-slate-500 normal-case font-normal">({asset.lifecycle_events.length})</span>
         </h2>
-        <ol className="space-y-3">
-          {[...asset.lifecycle_events].reverse().map((e) => (
-            <li key={e.id} className="flex items-start gap-3 text-sm">
-              <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-              <div>
-                <p className="text-slate-200">
-                  {e.from_state ? <>{e.from_state.replace('_', ' ')} <span className="text-slate-500">→</span> </> : null}
-                  <span className="font-medium">{e.to_state.replace('_', ' ')}</span>
-                  {e.actor && <span className="text-slate-500"> · by {e.actor}</span>}
-                </p>
-                <p className="text-xs text-slate-500">
+        <ol className="relative space-y-5 before:absolute before:left-[5px] before:top-1.5 before:bottom-1.5 before:w-px before:bg-slate-700/60">
+          {[...asset.lifecycle_events].reverse().map((e, idx) => (
+            <li key={e.id} className="relative flex items-start gap-4 text-sm">
+              <span className={clsx('relative z-10 mt-1 w-3 h-3 rounded-full ring-4 ring-slate-800 shrink-0',
+                idx === 0 ? STATE_DOT[e.to_state] ?? 'bg-indigo-500' : 'bg-slate-600')} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {e.from_state && <><StateBadge state={e.from_state} /><ArrowRight className="w-3 h-3 text-slate-600" /></>}
+                  <StateBadge state={e.to_state} />
+                  {e.actor && <span className="text-xs text-slate-500">by {e.actor}</span>}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
                   {format(new Date(e.occurred_at), 'PPp')}{e.note ? ` — ${e.note}` : ''}
                 </p>
               </div>
