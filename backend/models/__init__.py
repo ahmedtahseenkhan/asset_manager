@@ -10,8 +10,12 @@ from backend.models.asset_relationship import AssetRelationship
 from backend.models.contract import Contract
 from backend.models.entitlement import Entitlement, EntitlementAssignment
 from backend.models.notification import AlertRule, NotificationLog, SmtpSettings
+from backend.models.agent import AgentToken
+from backend.models.software import InstalledSoftware
 
 __all__ = [
+    "AgentToken",
+    "InstalledSoftware",
     "AlertRule",
     "NotificationLog",
     "SmtpSettings",
