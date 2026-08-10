@@ -41,7 +41,9 @@ the box. **Generate a fresh keypair for production** — see
 ```
 
 See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for air-gapped installs,
-licensing operations, backups, TLS, and troubleshooting.
+licensing operations, backups, TLS, and troubleshooting; and
+[docs/OPERATIONS.md](docs/OPERATIONS.md) for agent rollout, software licensing
+(SAM), security posture (CAASM), vulnerability import, and reporting workflows.
 
 ## Repository layout
 
