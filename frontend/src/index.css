@@ -3,7 +3,72 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-slate-900 text-slate-100 antialiased;
+    /* Subtle depth: a warm iris glow top-left + a faint grid — not a flat fill. */
+    background-image:
+      radial-gradient(60rem 40rem at 12% -10%, rgba(124, 110, 240, 0.08), transparent 60%),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.012), transparent 30%),
+      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+    background-attachment: fixed;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+  }
+
+  /* Tabular, lining figures for all numeric/data contexts. */
+  table, .tabular, [class*="font-mono"] {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* Selection uses the accent. */
+  ::selection {
+    background: rgba(124, 110, 240, 0.32);
+    color: #fff;
+  }
+
+  /* Refined focus — visible only for keyboard users. */
+  :focus-visible {
+    outline: 2px solid rgba(124, 110, 240, 0.7);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin, unobtrusive scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2a2a30 transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: #2a2a30;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: #3d3d46; background-clip: content-box; }
+
+  h1, h2, h3 { letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  /* Route/page content fades up on mount. */
+  .page-enter { animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+
+/* Honor reduced-motion: disable all animation/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
