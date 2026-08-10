@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, User as UserIcon } from 'lucide-react';
+import { ShieldCheck, Lock, User as UserIcon } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE } from '../api/client';
 
@@ -15,16 +15,13 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const formData = new URLSearchParams();
       formData.append('username', username);
       formData.append('password', password);
-
       const res = await axios.post(`${API_BASE}/auth/login`, formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
-
       login(res.data.access_token);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { detail?: string } } };
@@ -34,74 +31,60 @@ export default function Login() {
     }
   };
 
+  const input =
+    'block w-full pl-10 pr-3 py-2.5 border border-slate-700 rounded-lg bg-white text-slate-100 ' +
+    'placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-slate-950 to-green-950 flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/25 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-lime-400/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] bg-green-600/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-md relative">
-        <div className="bg-slate-900/75 backdrop-blur-xl border border-emerald-500/30 p-8 rounded-2xl shadow-2xl shadow-emerald-900/40 ring-1 ring-emerald-400/10">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/35 ring-2 ring-emerald-400/30">
-              <Shield className="w-8 h-8 text-emerald-950" />
-            </div>
-            <h1 className="text-2xl font-bold text-emerald-50">IT Asset Manager</h1>
-            <p className="text-emerald-200/70 mt-2">Sign in to sync your universe</p>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center mb-4 shadow-glow">
+            <ShieldCheck className="w-7 h-7 text-white" />
           </div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-50">SyncR</h1>
+          <p className="text-sm text-slate-400 mt-1">Sign in to your workspace</p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Card */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-7 shadow-panel">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/25 rounded-lg text-rose-300 text-sm">
+              <div className="p-3 bg-rose-500/10 border border-rose-500/25 rounded-lg text-rose-600 text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-emerald-200/80 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-500/70">
-                  <UserIcon className="h-5 w-5" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-emerald-700/40 rounded-lg bg-emerald-950/40 text-emerald-50 placeholder-emerald-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500/50 transition-all"
-                  placeholder="admin"
-                />
+                <UserIcon className="absolute inset-y-0 left-0 ml-3 my-auto h-4 w-4 text-slate-500" />
+                <input type="text" required value={username} placeholder="admin"
+                  onChange={(e) => setUsername(e.target.value)} className={input} />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-emerald-200/80 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-500/70">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-emerald-700/40 rounded-lg bg-emerald-950/40 text-emerald-50 placeholder-emerald-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-500/50 transition-all"
-                  placeholder="••••••••"
-                />
+                <Lock className="absolute inset-y-0 left-0 ml-3 my-auto h-4 w-4 text-slate-500" />
+                <input type="password" required value={password} placeholder="••••••••"
+                  onChange={(e) => setPassword(e.target.value)} className={input} />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2.5 px-4 border border-emerald-400/20 rounded-lg shadow-md shadow-emerald-900/30 text-sm font-semibold text-emerald-950 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 focus:ring-offset-slate-900 transition-all disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-800 transition-colors disabled:opacity-50 shadow-glow"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
         </div>
+
+        <p className="text-center text-xs text-slate-500 mt-6">On-premises asset intelligence</p>
       </div>
     </div>
   );

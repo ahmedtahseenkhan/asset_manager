@@ -12,7 +12,7 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
           <BarChart3 className="w-8 h-8 text-indigo-400" /> Reports
         </h1>
         <p className="text-slate-400 mt-1">Cost, lifecycle forecast, and compliance across the asset base.</p>
@@ -24,7 +24,7 @@ export default function Reports() {
           <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
             <DollarSign className="w-4 h-4" /> Capital by category
           </h2>
-          <p className="text-3xl font-bold text-white mb-4">${(c?.total_capital ?? 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-slate-50 mb-4">${(c?.total_capital ?? 0).toLocaleString()}</p>
           <ul className="space-y-2">
             {(c?.by_category ?? []).map((x: any) => (
               <li key={x.category} className="flex justify-between text-sm">
@@ -82,12 +82,12 @@ export default function Reports() {
           </div>
           <div>
             <p className="text-xs text-slate-500 uppercase mb-2">Ownership</p>
-            <p className="text-2xl font-bold text-white">{cp?.with_owner_pct ?? 0}%</p>
+            <p className="text-2xl font-bold text-slate-50">{cp?.with_owner_pct ?? 0}%</p>
             <p className="text-xs text-slate-500">have a point of contact</p>
           </div>
           <div>
             <p className="text-xs text-slate-500 uppercase mb-2">Reviewed</p>
-            <p className="text-2xl font-bold text-white">{cp?.reviewed_pct ?? 0}%</p>
+            <p className="text-2xl font-bold text-slate-50">{cp?.reviewed_pct ?? 0}%</p>
             <p className="text-xs text-slate-500">have a review date</p>
           </div>
         </div>

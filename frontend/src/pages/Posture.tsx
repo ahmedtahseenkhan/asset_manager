@@ -64,7 +64,7 @@ export default function Posture() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <ShieldCheck className="w-8 h-8 text-indigo-400" /> Security Posture
           </h1>
           <p className="text-slate-400 mt-1">Cyber asset attack-surface view — control coverage, vulnerabilities, and gaps.</p>
@@ -132,7 +132,7 @@ export default function Posture() {
             <Radio className="w-4 h-4" /> Log-source coverage
           </h2>
           <div className="flex items-baseline gap-3 mb-4">
-            <span className="text-3xl font-bold text-white">{cov?.coverage_pct ?? 0}%</span>
+            <span className="text-3xl font-bold text-slate-50">{cov?.coverage_pct ?? 0}%</span>
             <span className="text-sm text-slate-400">{cov?.onboarded ?? 0} of {cov?.total_deployed ?? 0} deployed assets onboarded</span>
           </div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Gaps (not sending logs)</p>
@@ -162,7 +162,7 @@ export default function Posture() {
             ['Stale assets', au?.stale_count],
           ].map(([label, val]) => (
             <div key={label as string}>
-              <p className="text-2xl font-bold text-white">{val ?? 0}</p>
+              <p className="text-2xl font-bold text-slate-50">{val ?? 0}</p>
               <p className="text-xs text-slate-400 mt-1">{label}</p>
             </div>
           ))}

@@ -4,15 +4,15 @@ import { getDashboardSummary } from '../api';
 import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-const CHART_COLORS = ['#7c6ef0', '#2dd4bf', '#f5b544', '#f472b6', '#60a5fa'];
+const CHART_COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#ec4899', '#8b5cf6'];
 
 const TOOLTIP = {
   contentStyle: {
-    backgroundColor: '#15151a', border: '1px solid #2a2a30', borderRadius: '10px',
-    color: '#f0f0f3', fontSize: '12px', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.6)',
+    backgroundColor: '#ffffff', border: '1px solid #e6e9ef', borderRadius: '10px',
+    color: '#0f1419', fontSize: '12px', boxShadow: '0 8px 24px -10px rgba(16,24,40,0.18)',
   },
-  itemStyle: { color: '#c3c3cc' },
-  labelStyle: { color: '#8e8e97' },
+  itemStyle: { color: '#414b58' },
+  labelStyle: { color: '#67717f' },
 };
 
 function Stat({ label, value, icon: Icon, tint, hint, onClick }: {
@@ -29,7 +29,7 @@ function Stat({ label, value, icon: Icon, tint, hint, onClick }: {
         <span className={`w-9 h-9 rounded-lg grid place-items-center ${tint}`}><Icon className="w-[18px] h-[18px]" /></span>
         {onClick && <ArrowUpRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />}
       </div>
-      <p className="text-3xl font-semibold text-white tracking-tight tabular-nums">{value.toLocaleString()}</p>
+      <p className="text-3xl font-semibold text-slate-50 tracking-tight tabular-nums">{value.toLocaleString()}</p>
       <p className="text-sm text-slate-400 mt-1">{label}</p>
       {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
     </Cmp>
@@ -50,11 +50,11 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Overview</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-50">Overview</h1>
           <p className="text-sm text-slate-500 mt-1">Unified state of the estate across all connectors.</p>
         </div>
         <button onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-300 bg-slate-800/70 border border-slate-700/60 rounded-lg hover:border-slate-600 hover:text-white transition-colors">
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-300 bg-slate-800/70 border border-slate-700/60 rounded-lg hover:border-slate-600 hover:text-slate-50 transition-colors">
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
@@ -104,11 +104,11 @@ export default function Dashboard() {
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={data.source_distribution} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#26262d" vertical={false} />
-                <XAxis dataKey="name" stroke="#6a6a73" tick={{ fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#26262d' }} />
-                <YAxis stroke="#6a6a73" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip {...TOOLTIP} cursor={{ fill: 'rgba(124,110,240,0.08)' }} />
-                <Bar dataKey="value" fill="#7c6ef0" radius={[5, 5, 0, 0]} maxBarSize={56} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e6e9ef" vertical={false} />
+                <XAxis dataKey="name" stroke="#8b95a3" tick={{ fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e6e9ef' }} />
+                <YAxis stroke="#8b95a3" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip {...TOOLTIP} cursor={{ fill: 'rgba(34,197,94,0.08)' }} />
+                <Bar dataKey="value" fill="#22c55e" radius={[5, 5, 0, 0]} maxBarSize={56} />
               </BarChart>
             </ResponsiveContainer>
           </div>

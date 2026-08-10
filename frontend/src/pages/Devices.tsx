@@ -161,7 +161,7 @@ export default function Devices() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Device Inventory</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50">Device Inventory</h1>
           <p className="text-slate-400 mt-1">Unified view of all IT assets discovered across {total} records.</p>
         </div>
         

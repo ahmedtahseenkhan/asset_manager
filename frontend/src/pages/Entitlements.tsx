@@ -134,7 +134,7 @@ export default function Entitlements() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <KeySquare className="w-8 h-8 text-indigo-400" />
             Software Entitlements
           </h1>
@@ -187,7 +187,7 @@ export default function Entitlements() {
                 <td className="px-6 py-4 text-right">
                   {canEdit && (
                     <button onClick={(ev) => { ev.stopPropagation(); openEdit(e); }}
-                      className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors" title="Edit">
+                      className="p-1.5 text-slate-500 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition-colors" title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
                   )}
@@ -205,7 +205,7 @@ export default function Entitlements() {
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-semibold text-white">{detail.product}</h2>
+                <h2 className="text-xl font-semibold text-slate-50">{detail.product}</h2>
                 <p className="text-sm text-slate-500">{detail.vendor ?? ''} · {detail.license_model.replace('_', ' ')}</p>
               </div>
               <div className="flex gap-2">
@@ -215,7 +215,7 @@ export default function Entitlements() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => setOpenId(null)} className="p-2 text-slate-400 hover:text-white rounded-lg">
+                <button onClick={() => setOpenId(null)} className="p-2 text-slate-400 hover:text-slate-50 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -230,7 +230,7 @@ export default function Entitlements() {
                 </span>
                 {user?.role === 'admin' && (
                   <button onClick={() => setShowKey((s) => !s)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded" title={showKey ? 'Hide key' : 'Reveal key'}>
+                    className="p-1.5 text-slate-400 hover:text-slate-50 rounded" title={showKey ? 'Hide key' : 'Reveal key'}>
                     {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 )}
@@ -285,10 +285,10 @@ export default function Entitlements() {
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-slate-50">
                 {modal.mode === 'edit' ? `Edit ${modal.ent.product}` : 'New entitlement'}
               </h2>
-              <button onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+              <button onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-slate-50 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -328,7 +328,7 @@ export default function Entitlements() {
                 <button type="button" onClick={() => setModal(null)}
                   className="px-4 py-2 text-sm text-slate-300 bg-slate-700/60 hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
                 <button type="submit" disabled={save.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+                  className="px-4 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
                   {save.isPending ? 'Saving…' : 'Save'}
                 </button>
               </div>

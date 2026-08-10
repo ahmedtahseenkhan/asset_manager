@@ -49,14 +49,14 @@ function Sidebar() {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <aside className="w-64 bg-slate-950/60 backdrop-blur-xl border-r border-slate-800 flex flex-col min-h-screen fixed">
+    <aside className="w-64 bg-slate-950/60 backdrop-blur-xl border-r border-slate-700 flex flex-col min-h-screen fixed">
       {/* Brand */}
-      <div className="h-16 px-5 flex items-center gap-2.5 border-b border-slate-800">
+      <div className="h-16 px-5 flex items-center gap-2.5 border-b border-slate-700">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center shadow-glow">
           <ShieldCheck className="w-[18px] h-[18px] text-white" />
         </div>
         <div className="leading-none">
-          <span className="text-[15px] font-semibold tracking-tight text-white">SyncR</span>
+          <span className="text-[15px] font-semibold tracking-tight text-slate-50">SyncR</span>
           <span className="block text-[10px] uppercase tracking-[0.18em] text-slate-500 mt-0.5">Asset Intelligence</span>
         </div>
       </div>
@@ -81,8 +81,8 @@ function Sidebar() {
                       clsx(
                         'group relative flex items-center gap-3 pl-3 pr-3 py-2 rounded-lg text-sm transition-colors duration-150',
                         isActive
-                          ? 'bg-indigo-500/10 text-white font-medium'
-                          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
+                          ? 'bg-indigo-500/10 text-slate-50 font-medium'
+                          : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100',
                       )
                     }
                   >
@@ -108,7 +108,7 @@ function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="p-3 border-t border-slate-800">
+      <div className="p-3 border-t border-slate-700">
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="w-8 h-8 rounded-lg bg-slate-800 ring-1 ring-slate-700 grid place-items-center text-sm font-semibold text-slate-200">
             {user?.username?.[0]?.toUpperCase()}

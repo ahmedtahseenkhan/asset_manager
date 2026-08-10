@@ -60,7 +60,7 @@ export default function License() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
           <KeyRound className="w-8 h-8 text-indigo-400" />
           License
         </h1>
@@ -112,7 +112,7 @@ export default function License() {
 
       {user?.role === 'admin' && (
         <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-          <h2 className="text-lg font-medium text-white mb-2">Install a new license</h2>
+          <h2 className="text-lg font-medium text-slate-50 mb-2">Install a new license</h2>
           <p className="text-sm text-slate-400 mb-4">
             Upload the <code className="text-slate-300">.lic</code> file provided by your vendor.
             Validation happens fully offline — no internet connection required.

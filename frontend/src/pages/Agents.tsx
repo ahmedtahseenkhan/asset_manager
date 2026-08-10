@@ -31,7 +31,7 @@ export default function Agents() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
           <Radar className="w-8 h-8 text-indigo-400" /> Agents
         </h1>
         <p className="text-slate-400 mt-1">Deploy the lightweight agent to collect full OS, serial, and installed-software inventory — even off-network.</p>
@@ -78,7 +78,7 @@ export default function Agents() {
                   </span>
                 </td>
                 <td className="py-2.5 text-right">
-                  <button onClick={() => toggle.mutate(t.id)} className="p-1.5 text-slate-500 hover:text-white rounded" title="Toggle">
+                  <button onClick={() => toggle.mutate(t.id)} className="p-1.5 text-slate-500 hover:text-slate-50 rounded" title="Toggle">
                     <Power className="w-4 h-4" />
                   </button>
                 </td>

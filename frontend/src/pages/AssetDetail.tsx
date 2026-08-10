@@ -49,7 +49,7 @@ function LifecycleCard({
                     : 'bg-slate-700 ring-transparent',
                 )} />
                 <span className={clsx('text-[11px] whitespace-nowrap',
-                  active ? 'text-white font-semibold' : done ? 'text-slate-300' : 'text-slate-600')}>
+                  active ? 'text-slate-50 font-semibold' : done ? 'text-slate-300' : 'text-slate-600')}>
                   {s.replace('_', ' ')}
                 </span>
               </div>
@@ -75,7 +75,7 @@ function LifecycleCard({
             <div className="flex flex-wrap gap-2">
               {allowed.map((s) => (
                 <button key={s} disabled={pending} onClick={() => onTransition(s)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
                   <ArrowRight className="w-4 h-4" />
                   <span className={`w-2 h-2 rounded-full ${STATE_DOT[s]}`} />
                   {s.replace('_', ' ')}
@@ -200,9 +200,9 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
               )}
             </div>
             <button disabled={!targetId || add.isPending} onClick={() => add.mutate()}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg">Add</button>
+              className="px-4 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg">Add</button>
             <button onClick={() => { setAdding(false); setTargetSearch(''); setTargetId(null); }}
-              className="px-3 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+              className="px-3 py-2 text-sm text-slate-400 hover:text-slate-50">Cancel</button>
           </div>
           {error && <p className="text-sm text-rose-400 mt-2">{error}</p>}
         </div>
@@ -331,7 +331,7 @@ export default function AssetDetail() {
             <ArrowLeft className="w-5 h-5 text-slate-300" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-50 flex items-center gap-3">
               {asset.name}
               <StateBadge state={asset.lifecycle_state} />
             </h1>

@@ -160,7 +160,7 @@ export default function DeviceDetail() {
       {/* Back button */}
       <button
         onClick={() => navigate('/devices')}
-        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
+        className="flex items-center gap-2 text-slate-400 hover:text-slate-50 transition-colors text-sm"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Device Inventory
@@ -174,7 +174,7 @@ export default function DeviceDetail() {
               <Laptop className="w-10 h-10 text-indigo-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-slate-50">
                 {device.hostname ?? <span className="text-slate-500">Unknown Host</span>}
               </h1>
               {device.fqdn && device.fqdn !== device.hostname && (

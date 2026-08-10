@@ -137,7 +137,7 @@ export default function Contracts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <FileText className="w-8 h-8 text-indigo-400" />
             Contracts
           </h1>
@@ -195,7 +195,7 @@ export default function Contracts() {
                 <td className="px-6 py-4 text-right">
                   {canEdit && (
                     <button onClick={(e) => { e.stopPropagation(); openEdit(c); }}
-                      className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors" title="Edit">
+                      className="p-1.5 text-slate-500 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition-colors" title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
                   )}
@@ -212,7 +212,7 @@ export default function Contracts() {
           <div className="w-full max-w-xl bg-slate-800 border-l border-slate-700 h-full overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">{detail.name}</h2>
+              <h2 className="text-xl font-semibold text-slate-50">{detail.name}</h2>
               <div className="flex gap-2">
                 {user?.role === 'admin' && (
                   <button
@@ -221,7 +221,7 @@ export default function Contracts() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => setOpenId(null)} className="p-2 text-slate-400 hover:text-white rounded-lg">
+                <button onClick={() => setOpenId(null)} className="p-2 text-slate-400 hover:text-slate-50 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -294,10 +294,10 @@ export default function Contracts() {
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-slate-50">
                 {modal.mode === 'edit' ? `Edit ${modal.contract.name}` : 'New contract'}
               </h2>
-              <button onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+              <button onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-slate-50 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -338,7 +338,7 @@ export default function Contracts() {
                 <button type="button" onClick={() => setModal(null)}
                   className="px-4 py-2 text-sm text-slate-300 bg-slate-700/60 hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
                 <button type="submit" disabled={save.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+                  className="px-4 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
                   {save.isPending ? 'Saving…' : 'Save'}
                 </button>
               </div>

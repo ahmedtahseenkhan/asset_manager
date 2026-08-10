@@ -68,7 +68,7 @@ export default function Assets() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Assets</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-50">Assets</h1>
           <p className="text-sm text-slate-500 mt-1">Managed inventory — <span className="tabular-nums">{total}</span> record{total !== 1 ? 's' : ''}.</p>
         </div>
         <div className="flex gap-2.5">
@@ -126,7 +126,7 @@ export default function Assets() {
                 <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-700">
               {isLoading ? (
                 [...Array(6)].map((_, i) => (
                   <tr key={i}><td colSpan={7} className="px-5 py-3.5">
@@ -151,7 +151,7 @@ export default function Assets() {
                         {(a.name || '?').slice(0, 2)}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">{a.name}</p>
+                        <p className="text-sm font-medium text-slate-200 truncate group-hover:text-slate-50 transition-colors">{a.name}</p>
                         <p className="font-mono text-[11px] text-indigo-400/80">{a.asset_tag}</p>
                       </div>
                     </div>
@@ -173,7 +173,7 @@ export default function Assets() {
                     {canEdit && (
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/assets/${a.id}/edit`); }}
-                        className="p-1.5 text-slate-600 hover:text-white hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1.5 text-slate-600 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />

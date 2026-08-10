@@ -71,7 +71,7 @@ export default function AssetForm() {
           <ArrowLeft className="w-5 h-5 text-slate-300" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-50">
             {isEdit ? `Edit ${existing?.asset_tag ?? 'asset'}` : 'New asset'}
           </h1>
           <p className="text-slate-400 text-sm mt-0.5">
@@ -107,7 +107,7 @@ export default function AssetForm() {
               className={clsx(
                 'px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
                 i === activeTab
-                  ? 'border-indigo-500 text-white'
+                  ? 'border-indigo-500 text-slate-50'
                   : 'border-transparent text-slate-400 hover:text-slate-200',
               )}
             >
@@ -162,7 +162,7 @@ export default function AssetForm() {
             Cancel
           </button>
           <button type="submit" disabled={save.isPending}
-            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
             <Check className="w-4 h-4" />
             {save.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create asset'}
           </button>

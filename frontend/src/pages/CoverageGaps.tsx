@@ -157,7 +157,7 @@ export default function CoverageGaps() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <ShieldAlert className="w-8 h-8 text-rose-400" />
             Coverage Gaps
           </h1>
@@ -177,7 +177,7 @@ export default function CoverageGaps() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/80 backdrop-blur-sm p-5 rounded-2xl border border-slate-700/50">
           <p className="text-sm text-slate-400">Active Devices</p>
-          <p className="text-3xl font-bold text-white mt-1">{summary.total_active_devices}</p>
+          <p className="text-3xl font-bold text-slate-50 mt-1">{summary.total_active_devices}</p>
         </div>
         <div className="bg-slate-800/80 backdrop-blur-sm p-5 rounded-2xl border border-rose-500/20">
           <p className="text-sm text-slate-400">Devices With Gaps</p>
@@ -235,7 +235,7 @@ export default function CoverageGaps() {
       {summary.devices_with_gaps === 0 ? (
         <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-emerald-500/20 p-12 text-center">
           <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-          <p className="text-xl font-semibold text-white">Full Coverage</p>
+          <p className="text-xl font-semibold text-slate-50">Full Coverage</p>
           <p className="text-slate-400 mt-2">All active devices are covered by every enabled security tool.</p>
         </div>
       ) : (

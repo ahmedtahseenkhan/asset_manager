@@ -117,7 +117,7 @@ export default function Notifications() {
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <BellRing className="w-8 h-8 text-indigo-400" />
             Notifications
           </h1>
@@ -135,7 +135,7 @@ export default function Notifications() {
 
       {/* SMTP settings */}
       <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-        <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-medium text-slate-50 mb-4 flex items-center gap-2">
           <Mail className="w-5 h-5 text-slate-400" /> SMTP relay
         </h2>
         <form onSubmit={(e) => { e.preventDefault(); saveSmtp.mutate(); }}
@@ -177,7 +177,7 @@ export default function Notifications() {
           </div>
           <div className="sm:col-span-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <button type="submit" disabled={saveSmtp.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
+              className="px-4 py-2 text-sm font-medium text-slate-50 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors">
               {saveSmtp.isPending ? 'Saving…' : 'Save SMTP settings'}
             </button>
             <div className="flex gap-2 sm:ml-auto">
@@ -194,7 +194,7 @@ export default function Notifications() {
 
       {/* Alert rules */}
       <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-        <h2 className="text-lg font-medium text-white mb-4">Alert rules</h2>
+        <h2 className="text-lg font-medium text-slate-50 mb-4">Alert rules</h2>
         <div className="space-y-4">
           {(rulesRes?.data ?? []).map((r: AlertRule) => {
             const d = ruleDrafts[r.rule_type];
@@ -233,7 +233,7 @@ export default function Notifications() {
 
       {/* Log */}
       <div className="bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-        <h2 className="text-lg font-medium text-white p-6 pb-3">Recent alerts</h2>
+        <h2 className="text-lg font-medium text-slate-50 p-6 pb-3">Recent alerts</h2>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">

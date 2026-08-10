@@ -65,7 +65,7 @@ export default function Reconciliation() {
           <ArrowLeft className="w-5 h-5 text-slate-300" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
             <GitMerge className="w-8 h-8 text-indigo-400" />
             Device Reconciliation
           </h1>

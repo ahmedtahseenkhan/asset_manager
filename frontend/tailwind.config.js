@@ -7,7 +7,6 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // System-grotesk stack — SF/Segoe/Inter, no external CDN (air-gap safe)
         sans: [
           'Inter', 'SF Pro Text', '-apple-system', 'BlinkMacSystemFont',
           'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif',
@@ -18,34 +17,36 @@ export default {
         ],
       },
       colors: {
-        // Warm graphite — replaces the cold default slate across the whole app.
+        // LIGHT theme. The app was authored dark (bg-slate-900 canvas, text-white),
+        // so `slate` is inverted: high numbers = light surfaces, low numbers = dark text.
         slate: {
-          50:  '#f7f7f8',
-          100: '#eeeef0',
-          200: '#dcdce0',
-          300: '#b6b6bd',
-          400: '#8e8e97',   // secondary text
-          500: '#6a6a73',   // muted / placeholder
-          600: '#42424a',
-          700: '#2a2a30',   // hairline borders
-          800: '#1a1a1f',   // cards / panels
-          900: '#111114',   // canvas
-          950: '#0a0a0c',
+          50:  '#0f1419',   // near-black — headings / primary (replaces text-white)
+          100: '#1a212b',   // strong text
+          200: '#2c3440',   // primary body text
+          300: '#414b58',   // body text
+          400: '#67717f',   // secondary text
+          500: '#8b95a3',   // muted / placeholder
+          600: '#aab3bf',   // very muted ("—")
+          700: '#e6e9ef',   // hairline borders / dividers
+          800: '#ffffff',   // cards / panels
+          900: '#eef1f6',   // canvas
+          950: '#ffffff',   // elevated (sidebar)
         },
-        // Iris accent — replaces the default indigo (a touch warmer/brighter).
+        // Emerald/green accent (replaces indigo) — the InvestX-style signal green.
         indigo: {
-          300: '#b3aaf8',
-          400: '#9a8ff4',   // accent text on dark
-          500: '#7c6ef0',
-          600: '#5f4fe0',   // primary buttons (AA on white text)
-          700: '#4c3cc6',
-          800: '#3c30a0',
-          900: '#2c2478',
+          300: '#86efac',
+          400: '#15a34a',   // accent text / icons on white
+          500: '#22c55e',   // bright green (tints, charts)
+          600: '#16a34a',   // primary buttons (white text)
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
         },
       },
       boxShadow: {
-        'panel': '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.5)',
-        'glow': '0 0 0 1px rgba(124,110,240,0.25), 0 8px 30px -8px rgba(124,110,240,0.35)',
+        'card': '0 1px 2px 0 rgba(16,24,40,0.04), 0 1px 3px 0 rgba(16,24,40,0.06)',
+        'panel': '0 4px 16px -6px rgba(16,24,40,0.10)',
+        'glow': '0 6px 16px -6px rgba(34,197,94,0.45)',
       },
       keyframes: {
         'fade-up': {

@@ -20,7 +20,7 @@ export default function Software() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
           <Scale className="w-8 h-8 text-indigo-400" /> Software & Licensing
         </h1>
         <p className="text-slate-400 mt-1">Effective License Position — entitlements reconciled against discovered installs.</p>
@@ -29,7 +29,7 @@ export default function Software() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          ['Entitlements', summary.entitlements, 'text-white'],
+          ['Entitlements', summary.entitlements, 'text-slate-50'],
           ['Compliant', summary.compliant, 'text-emerald-400'],
           ['Over-deployed', summary.over_deployed, 'text-rose-400'],
           ['True-up needed (seats)', summary.total_shortfall_seats, 'text-yellow-400'],
