@@ -12,10 +12,12 @@ from backend.models.entitlement import Entitlement, EntitlementAssignment
 from backend.models.notification import AlertRule, NotificationLog, SmtpSettings
 from backend.models.agent import AgentToken
 from backend.models.software import InstalledSoftware
+from backend.models.vulnerability import Vulnerability
 
 __all__ = [
     "AgentToken",
     "InstalledSoftware",
+    "Vulnerability",
     "AlertRule",
     "NotificationLog",
     "SmtpSettings",
