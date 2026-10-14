@@ -112,6 +112,7 @@ field-level Fernet encryption for all stored secrets.
 | Symptom | Check |
 |---|---|
 | API unhealthy | `docker compose -f deploy/docker/compose.prod.yml logs api` |
+| API won't start after an upgrade | look for a migration error in the api log; the schema was rolled back, so restore the previous image or contact support |
 | "License expired/invalid" banner | License page → upload a current `.lic` |
 | Writes rejected with 403 | license state or role — check License page and the user's role |
 | Emails not arriving | Notifications → Test; check relay host/port/STARTTLS; see the alert log for errors |
@@ -128,3 +129,19 @@ docker compose -f deploy/docker/compose.prod.yml up -d --build
 ```
 
 Volumes (`pg_data`, `api_data`) persist across upgrades. Take a backup first.
+
+**Database migrations run automatically** when the API starts. Each upgrade
+applies in a single transaction, so a failed upgrade leaves the schema exactly
+as it was. If several API containers start together, only one migrates and the
+others wait. Installs from before migrations existed are adopted on their first
+start: the log shows `adopting it at 0001_baseline`.
+
+To run migrations by hand (e.g. before switching traffic over):
+
+```bash
+docker compose -f deploy/docker/compose.prod.yml run --rm api python -m backend.migrations
+```
+
+If the log warns `Database schema differs from the models`, the database was
+changed by hand or a release is missing a migration. Contact support with that
+log line before making further changes.

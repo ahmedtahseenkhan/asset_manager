@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +10,8 @@ from backend.utils.rate_limit import limiter
 from backend.utils.logging import configure_json_logging
 
 from backend.config import settings
-from backend.database import engine, Base
+from backend.database import engine
+from backend.migrations import run_migrations
 from backend.connectors.registry import registry
 from backend.services.scheduler_service import scheduler
 from backend.licensing.state import license_manager
@@ -22,10 +24,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing database...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database initialized.")
+    logger.info("Applying database migrations...")
+    await asyncio.to_thread(run_migrations)
+    logger.info("Database schema is up to date.")
 
     license_manager.reload()
 

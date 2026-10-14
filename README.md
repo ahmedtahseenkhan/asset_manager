@@ -29,6 +29,16 @@ cd frontend && npm install && npm run dev    # UI on :5173
 ./backend/.venv/bin/python -m backend.dev_seed   # dev admin: admin/admin123
 ```
 
+The API applies database migrations on startup (`backend/migrations.py`).
+After changing a model, add a migration — `tests/test_migrations.py` fails
+until you do:
+
+```bash
+cd backend && ./.venv/bin/alembic revision --autogenerate -m "describe the change"
+```
+
+Tests: `cd backend && ./.venv/bin/pip install -r requirements-dev.txt && ./.venv/bin/python -m pytest`
+
 A dev license (`backend/license.lic`) and dev signing keypair
 (`tools/license-signer/keys/dev/`) are committed so everything works out of
 the box. **Generate a fresh keypair for production** — see

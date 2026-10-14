@@ -13,8 +13,10 @@ from backend.models.notification import AlertRule, NotificationLog, SmtpSettings
 from backend.models.agent import AgentToken
 from backend.models.software import InstalledSoftware
 from backend.models.vulnerability import Vulnerability
+from backend.models.audit_log import AuditLog
 
 __all__ = [
+    "AuditLog",
     "AgentToken",
     "InstalledSoftware",
     "Vulnerability",
