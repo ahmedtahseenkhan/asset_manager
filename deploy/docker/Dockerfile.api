@@ -6,6 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# ping + arp for the network-scan connector (the slim image ships neither)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends iputils-ping net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first for layer caching
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt

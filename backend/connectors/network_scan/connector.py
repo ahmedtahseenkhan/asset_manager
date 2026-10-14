@@ -407,10 +407,18 @@ class NetworkScanConnector(BaseConnector):
     async def test_connection(self, config: Dict[str, Any]) -> bool:
         # Valid subnet + ping binary available = scan can run.
         net = _resolve_subnet(config)
-        proc = await asyncio.create_subprocess_exec(
-            *_ping_cmd(str(next(net.hosts())), 200),
-            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-        )
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *_ping_cmd(str(next(net.hosts())), 200),
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
+            # The sweep treats a failed ping as "host down", so without this
+            # check a scan would silently find almost nothing.
+            raise RuntimeError(
+                "The 'ping' command is not installed on the server "
+                "(Debian/Ubuntu: apt-get install iputils-ping)"
+            )
         await proc.communicate()
         return True
 

@@ -131,7 +131,10 @@ export default function Connectors() {
         message: ok ? 'Connection successful.' : 'Connection test returned false — check credentials.',
       });
     } catch (err: any) {
-      const detail = err?.response?.data?.detail ?? err?.message ?? 'Unknown error';
+      // HTTPException bodies carry `detail`; the license middleware and the
+      // global error handler use `message`.
+      const body = err?.response?.data;
+      const detail = body?.detail ?? body?.message ?? err?.message ?? 'Unknown error';
       setTestResult({ success: false, message: `Connection failed: ${detail}` });
     } finally {
       setIsTesting(false);

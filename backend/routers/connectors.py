@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Any
@@ -10,6 +11,8 @@ from backend.middleware.auth import require_admin
 from backend.connectors.registry import registry
 from backend.services.scheduler_service import scheduler
 from backend.services.audit_service import AuditService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/connectors", tags=["Connectors"])
 
@@ -49,10 +52,16 @@ async def test_connection(
 ):
     try:
         connector = registry.get_connector(name)
-        result = await connector.test_connection(config_in)
-        return APIResponse(data=result, message="Connection test " + ("successful" if result else "failed"))
     except ValueError:
         raise HTTPException(404, "Connector not found")
+    try:
+        result = await connector.test_connection(config_in)
+    except ValueError as exc:  # invalid configuration, e.g. a malformed subnet
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        logger.warning("Connection test for %s failed: %s", name, exc, exc_info=True)
+        raise HTTPException(502, str(exc) or type(exc).__name__)
+    return APIResponse(data=result, message="Connection test " + ("successful" if result else "failed"))
 
 @router.post("/{name}/sync", response_model=APIResponse[str])
 async def trigger_sync(
