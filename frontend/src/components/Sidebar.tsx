@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Laptop, Plug, LogOut, ShieldAlert, Settings, Boxes, KeyRound,
-  FileText, KeySquare, BellRing, ShieldCheck, Scale, Radar, BarChart3,
+  FileText, KeySquare, BellRing, ShieldCheck, Scale, Radar, BarChart3, ScanSearch,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
@@ -35,6 +35,7 @@ const GROUPS: Group[] = [
   {
     title: 'Administration',
     items: [
+      { to: '/scanning', label: 'Scanning', icon: ScanSearch, adminOnly: true },
       { to: '/connectors', label: 'Connectors', icon: Plug, adminOnly: true },
       { to: '/agents', label: 'Agents', icon: Radar, adminOnly: true },
       { to: '/notifications', label: 'Notifications', icon: BellRing, adminOnly: true },

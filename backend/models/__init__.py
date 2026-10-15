@@ -14,9 +14,17 @@ from backend.models.agent import AgentToken
 from backend.models.software import InstalledSoftware
 from backend.models.vulnerability import Vulnerability
 from backend.models.audit_log import AuditLog
+from backend.models.scan_credential import ScanCredential
+from backend.models.scan_target import ScanTarget, ScanTargetCredential
+from backend.models.scan_run import ScanRun, ScanHostResult
 
 __all__ = [
     "AuditLog",
+    "ScanCredential",
+    "ScanTarget",
+    "ScanTargetCredential",
+    "ScanRun",
+    "ScanHostResult",
     "AgentToken",
     "InstalledSoftware",
     "Vulnerability",

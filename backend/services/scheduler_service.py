@@ -56,36 +56,55 @@ class SchedulerService:
         logger.info("Scheduler stopped.")
 
     async def reload_jobs(self, db: AsyncSession):
-        """Fetches active configurations and registers them as cron jobs."""
+        """Register a cron job per enabled connector and scan target, and drop
+        jobs whose connector/target was disabled, unscheduled or deleted.
+
+        Jobs reference module-level functions by name: the SQLAlchemy job store
+        pickles the callable, so closures cannot be scheduled."""
         from sqlalchemy.future import select
         from backend.models.connector_config import ConnectorConfig
-        
-        result = await db.execute(select(ConnectorConfig).where(ConnectorConfig.enabled == True))
-        configs = result.scalars().all()
-        
-        # Clear existing
-        # Relying on replace_existing=True for updates
+        from backend.models.scan_target import ScanTarget
 
-            
-        for config in configs:
-            if not config.schedule_cron: continue
-            
-            job_id = f"sync_{config.connector_name}"
-            # Need a wrapper to grab a fresh DB session each time the job runs
-            async def sync_job(config_id=config.id):
-                try:
-                    # apscheduler doesn't have request context, so we manually get a session generator
-                    async for session in get_db():
-                        await SyncService.run_sync_for_connector(session, config_id)
-                except Exception as e:
-                    logger.error(f"Scheduled sync failed for config {config_id}: {e}")
+        wanted: dict[str, tuple] = {}
+        for c in (await db.execute(select(ConnectorConfig).where(ConnectorConfig.enabled == True))).scalars():
+            if c.schedule_cron:
+                wanted[f"sync_{c.connector_name}"] = (run_connector_sync, c.id, c.schedule_cron)
+        for t in (await db.execute(select(ScanTarget).where(ScanTarget.enabled == True))).scalars():
+            if t.schedule_cron:
+                wanted[f"scan_target_{t.id}"] = (run_scan_target, t.id, t.schedule_cron)
 
+        for job in self.scheduler.get_jobs():
+            if job.id.startswith(("sync_", "scan_target_")) and job.id not in wanted:
+                job.remove()
+                logger.info("Removed scheduled job %s", job.id)
+
+        for job_id, (func, arg, cron) in wanted.items():
             try:
-                trigger = CronTrigger.from_crontab(config.schedule_cron)
-                job = self.scheduler.add_job(sync_job, trigger=trigger, id=job_id, replace_existing=True)
-                logger.info(f"Added scheduled job for {config.connector_name} with cron: {config.schedule_cron}")
+                self.scheduler.add_job(func, trigger=CronTrigger.from_crontab(cron), args=[arg],
+                                       id=job_id, replace_existing=True)
+                logger.info("Scheduled %s with cron %r", job_id, cron)
             except Exception as e:
-                logger.error(f"Failed to add job for {config.connector_name}: {e}")
+                logger.error("Failed to schedule %s: %s", job_id, e)
+
+
+async def run_connector_sync(config_id: int):
+    try:
+        async for session in get_db():
+            await SyncService.run_sync_for_connector(session, config_id)
+    except Exception as e:
+        logger.error("Scheduled sync failed for connector config %s: %s", config_id, e)
+
+
+async def run_scan_target(target_id: int):
+    from backend.scanning.runner import ScanAlreadyRunning, scan_runner
+    try:
+        run_id = await scan_runner.start(target_id, trigger="schedule")
+        await scan_runner.wait(run_id)
+    except ScanAlreadyRunning:
+        logger.info("Skipping scheduled scan of target %s: previous run still active", target_id)
+    except Exception as e:
+        logger.error("Scheduled scan of target %s failed to start: %s", target_id, e)
+
 
 # Global scheduler
 scheduler = SchedulerService()

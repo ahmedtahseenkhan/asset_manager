@@ -6,6 +6,34 @@ For install/licensing/backup basics see [ADMIN_GUIDE.md](ADMIN_GUIDE.md).
 
 ---
 
+## 0. Network scanning (Scanning page)
+
+**Scanning** (admin only, licence module `discovery_plus`) replaces the single
+Network Scan connector with any number of **scan targets**:
+
+- **Scan targets** — a name, the addresses (subnet `192.168.1.0/24`, range
+  `10.0.0.10-10.0.0.50`, or a host list `srv01, srv02.corp.local`), optional
+  exclusions, and a schedule (manual, daily, every 6 h, weekly, or cron).
+  *Check addresses* shows how many IPs a target covers before you save it
+  (limit 4,096 per target). **Run now** starts a scan immediately.
+- **Credentials** — accounts for credentialed scanning (Windows, SSH password
+  or key, SNMP v1/v2c/v3, VMware). Secrets are encrypted and never shown again.
+  Attach credentials to a target in the order they should be tried.
+  *Credentialed scanning itself (WinRM, WMI, SSH, SNMP inventory) is not
+  released yet; until then every run is a network sweep.*
+- **Scan history** — every run with its status, duration, how many addresses
+  responded, and per-host results linking to the discovered device.
+
+Only one run per target executes at a time; a scheduled run is skipped if the
+previous one is still going. Runs interrupted by a server restart are marked
+failed with that reason.
+
+> In Docker, the API container sits on Docker's internal network: pings reach
+> your LAN, but MAC addresses and some name lookups won't. Enter real subnets —
+> never rely on auto-detection inside a container.
+
+---
+
 ## 1. Agent rollout (the deepest, most reliable inventory)
 
 A network scan sees *presence*; the **agent** sees *identity* — exact OS and
@@ -123,7 +151,7 @@ fields (via the asset form or **bulk edit**) to make these meaningful.
 
 ## Recommended onboarding order
 
-1. **Scan** your real LAN (Connectors → Network Scan) to find what's there.
+1. **Scan** your real LAN (Scanning → Scan targets) to find what's there.
 2. **Adopt** the devices you manage (Assets → Reconcile).
 3. **Deploy agents** to endpoints → real serial/OS/software auto-populate.
 4. **Classify** in bulk — set criticality, data classification, owner.

@@ -4,6 +4,7 @@ import type {
   LicenseStatus, Asset, AssetDetail, AssetListOut, UnlinkedDevice,
   Contract, ContractDetail, ContractListOut, EntitlementDetail, EntitlementListOut,
   SmtpSettingsOut, AlertRule, NotificationLogEntry,
+  CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -198,3 +199,35 @@ export const importAssets = (file: File) => {
   const f = new FormData(); f.append('file', file);
   return apiClient.post<never, APIResponse<any>>('/assets/import', f, { headers: { 'Content-Type': 'multipart/form-data' } });
 };
+
+// ── Scanning: credential vault, scan targets, runs ────
+export const getCredentialTypes = () =>
+  apiClient.get<never, APIResponse<Record<string, CredentialTypeSpec>>>('/scan/credential-types');
+export const getScanCredentials = () =>
+  apiClient.get<never, APIResponse<ScanCredential[]>>('/scan/credentials');
+export const createScanCredential = (body: unknown) =>
+  apiClient.post<never, APIResponse<ScanCredential>>('/scan/credentials', body);
+export const updateScanCredential = (id: number, body: unknown) =>
+  apiClient.patch<never, APIResponse<ScanCredential>>(`/scan/credentials/${id}`, body);
+export const deleteScanCredential = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/scan/credentials/${id}`);
+
+export const getScanTargets = () =>
+  apiClient.get<never, APIResponse<ScanTarget[]>>('/scan/targets');
+export const previewScanTarget = (body: { target_type: string; value: string; exclusions: string }) =>
+  apiClient.post<never, APIResponse<{ count: number; sample: string[] }>>('/scan/targets/preview', body);
+export const createScanTarget = (body: unknown) =>
+  apiClient.post<never, APIResponse<ScanTarget>>('/scan/targets', body);
+export const updateScanTarget = (id: number, body: unknown) =>
+  apiClient.patch<never, APIResponse<ScanTarget>>(`/scan/targets/${id}`, body);
+export const deleteScanTarget = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/scan/targets/${id}`);
+export const runScanTarget = (id: number) =>
+  apiClient.post<never, APIResponse<{ run_id: number }>>(`/scan/targets/${id}/run`);
+
+export const getScanRuns = (params: { target_id?: number; limit?: number } = {}) =>
+  apiClient.get<never, APIResponse<ScanRun[]>>('/scan/runs', { params });
+export const getScanRun = (id: number) =>
+  apiClient.get<never, APIResponse<ScanRunDetail>>(`/scan/runs/${id}`);
+export const cancelScanRun = (id: number) =>
+  apiClient.post<never, APIResponse<boolean>>(`/scan/runs/${id}/cancel`);

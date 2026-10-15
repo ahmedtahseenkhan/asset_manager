@@ -10,14 +10,15 @@ from backend.utils.rate_limit import limiter
 from backend.utils.logging import configure_json_logging
 
 from backend.config import settings
-from backend.database import engine
+from backend.database import async_session, engine
+from backend.scanning.runner import scan_runner
 from backend.migrations import run_migrations
 from backend.connectors.registry import registry
 from backend.services.scheduler_service import scheduler
 from backend.licensing.state import license_manager
 from backend.licensing.enforcement import LicenseEnforcementMiddleware
 
-from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets, reconciliation, contracts, entitlements, notifications, agents, sam, posture, reports
+from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets, reconciliation, contracts, entitlements, notifications, agents, sam, posture, reports, scanning
 
 configure_json_logging(debug=settings.debug)
 logger = logging.getLogger(__name__)
@@ -32,6 +33,11 @@ async def lifespan(app: FastAPI):
 
     registry.discover_and_register()
     scheduler.start()
+    interrupted = await scan_runner.recover_interrupted()
+    if interrupted:
+        logger.warning("Marked %d scan run(s) interrupted by the restart as failed", interrupted)
+    async with async_session() as db:
+        await scheduler.reload_jobs(db)
 
     yield
 
@@ -75,6 +81,7 @@ app.include_router(agents.router, prefix="/api")
 app.include_router(sam.router, prefix="/api")
 app.include_router(posture.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(scanning.router, prefix="/api")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

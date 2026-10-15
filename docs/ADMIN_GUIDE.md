@@ -41,6 +41,11 @@ image. There is **no phone-home**.
   and license upload, so you can always recover).
 - **Limits:** `max_assets`, `max_users`, and the enabled module list are
   enforced from the license claims.
+- **Modules:** `assets`, `cmdb`, `contracts`, `entitlements`, `notifications`,
+  `connectors`, `discovery_plus` (Scanning page: targets, credentials,
+  credentialed scanning), `reporting`, `topology`, `cloud`, `ot`. A feature
+  whose module is missing answers 403 with the module's name. Licences issued
+  before `discovery_plus` existed need re-issuing to use the Scanning page.
 - The License page shows current usage against limits.
 
 ## 3. Users & roles

@@ -70,6 +70,7 @@ async def api(tmp_path, monkeypatch):
     from backend.licensing.verifier import LicenseInfo, LicenseStatus
     from backend.main import app
     from backend.migrations import run_migrations
+    from backend.scanning.runner import scan_runner
     from backend.models.user import User
     from backend.utils.security import create_access_token, get_password_hash
 
@@ -83,6 +84,7 @@ async def api(tmp_path, monkeypatch):
             yield session
 
     app.dependency_overrides[get_db] = _get_db
+    monkeypatch.setattr(scan_runner, "session_factory", session_factory)
     registry.discover_and_register()  # normally done in the app lifespan
     monkeypatch.setattr(license_manager, "_info", LicenseInfo(
         LicenseStatus.VALID, claims={

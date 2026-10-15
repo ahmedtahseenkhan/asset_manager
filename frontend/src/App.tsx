@@ -21,6 +21,7 @@ import Notifications from './pages/Notifications';
 import Posture from './pages/Posture';
 import Software from './pages/Software';
 import Agents from './pages/Agents';
+import Scanning from './pages/Scanning';
 import Reports from './pages/Reports';
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="/posture" element={<ProtectedRoute><Posture /></ProtectedRoute>} />
       <Route path="/software" element={<ProtectedRoute><Software /></ProtectedRoute>} />
       <Route path="/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
+      <Route path="/scanning" element={<ProtectedRoute><Scanning /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/license" element={<ProtectedRoute><License /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

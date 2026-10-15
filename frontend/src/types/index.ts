@@ -298,3 +298,80 @@ export interface NotificationLogEntry {
   error: string | null;
   created_at: string;
 }
+
+// ── Scanning ─────────────────────────────────────────
+export interface CredentialTypeSpec {
+  label: string;
+  username: 'required' | 'none';
+  secrets: { name: string; required: boolean }[];
+  params: Record<string, string[] | null>;   // allowed values, or null for free text
+}
+
+export interface ScanCredential {
+  id: number;
+  name: string;
+  cred_type: string;
+  type_label: string;
+  username: string | null;
+  params: Record<string, string | number>;
+  secrets_set: string[];
+  description: string | null;
+  target_count?: number;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+  last_success_at: string | null;
+}
+
+export type ScanRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export interface ScanTarget {
+  id: number;
+  name: string;
+  enabled: boolean;
+  target_type: 'cidr' | 'range' | 'hosts';
+  value: string;
+  exclusions: string;
+  schedule_cron: string | null;
+  methods: string[];
+  concurrency: number;
+  timeout_ms: number;
+  deep_probe: boolean;
+  credential_ids: number[];
+  last_run_at: string | null;
+  last_status: ScanRunStatus | null;
+  running: boolean;
+}
+
+export interface ScanRun {
+  id: number;
+  target_id: number | null;
+  target_name: string;
+  trigger: 'manual' | 'schedule';
+  status: ScanRunStatus;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  hosts_total: number;
+  hosts_alive: number;
+  hosts_inventoried: number;
+  hosts_failed: number;
+}
+
+export interface ScanHostResult {
+  id: number;
+  ip: string;
+  hostname: string | null;
+  status: 'alive' | 'inventoried' | 'failed';
+  method: string | null;
+  credential_id: number | null;
+  device_id: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  duration_ms: number | null;
+}
+
+export interface ScanRunDetail extends ScanRun {
+  hosts: ScanHostResult[];
+}

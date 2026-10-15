@@ -357,6 +357,14 @@ def _resolve_subnet(config: Dict[str, Any]) -> ipaddress.IPv4Network:
     return net
 
 
+def _target_hosts(config: Dict[str, Any]) -> List[str]:
+    """Addresses to sweep: an explicit `addresses` list (scan targets expand
+    ranges and host lists into one), else every host in the subnet."""
+    if config.get("addresses"):
+        return [str(ipaddress.ip_address(a)) for a in config["addresses"]]
+    return [str(h) for h in _resolve_subnet(config).hosts()]
+
+
 def _ping_cmd(ip: str, timeout_ms: int) -> List[str]:
     # No -q: we parse the per-reply line for the TTL (OS fingerprint).
     if sys.platform == "darwin":
@@ -406,10 +414,10 @@ class NetworkScanConnector(BaseConnector):
 
     async def test_connection(self, config: Dict[str, Any]) -> bool:
         # Valid subnet + ping binary available = scan can run.
-        net = _resolve_subnet(config)
+        hosts = _target_hosts(config)
         try:
             proc = await asyncio.create_subprocess_exec(
-                *_ping_cmd(str(next(net.hosts())), 200),
+                *_ping_cmd(hosts[0], 200),
                 stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
             )
         except FileNotFoundError:
@@ -423,9 +431,9 @@ class NetworkScanConnector(BaseConnector):
         return True
 
     async def fetch_devices(self, config: Dict[str, Any]) -> List[RawDeviceRecord]:
-        net = _resolve_subnet(config)
+        hosts = _target_hosts(config)
         timeout_ms = int(config.get("timeout_ms", 1000))
-        sem = asyncio.Semaphore(_CONCURRENCY)
+        sem = asyncio.Semaphore(int(config.get("concurrency") or _CONCURRENCY))
 
         async def ping(ip: str) -> Tuple[bool, Optional[int]]:
             """Returns (alive, ttl). TTL is parsed from the reply for OS guessing."""
@@ -445,7 +453,6 @@ class NetworkScanConnector(BaseConnector):
                 except (OSError, asyncio.TimeoutError):
                     return False, None
 
-        hosts = [str(h) for h in net.hosts()]
         ping_res = dict(zip(hosts, await asyncio.gather(*(ping(h) for h in hosts))))
         ping_ok = {ip: r[0] for ip, r in ping_res.items()}
         ttls = {ip: r[1] for ip, r in ping_res.items()}
@@ -552,7 +559,7 @@ class NetworkScanConnector(BaseConnector):
             })
 
         # Always include the machine running the scan (it never ARPs itself).
-        if local and ipaddress.ip_address(local) in net:
+        if local and local in set(hosts):
             own_host = socket.gethostname()
             records.append({
                 "source_uid": f"self-{own_host}",

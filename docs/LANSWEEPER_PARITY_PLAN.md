@@ -78,19 +78,32 @@ Must land first; everything after depends on it.
 - [x] **0.3 `InventoryService`** generalising `AgentService.ingest` with a
       `source` parameter (`agent`, `winrm`, `wmi`, `ssh`, `snmp`, `vmware`, …).
       Agent endpoint keeps accepting the v1 payload (map → v2).
+      *Done:* `schemas/inventory.py`, `services/inventory_service.py`. A `None`
+      section means "not collected" and leaves stored data alone; software is
+      diffed (rows kept, `last_seen` refreshed) instead of deleted and re-inserted.
 - [x] **0.4 Correlator authority** — add `agent` (top) and the new scan sources to
       `_FIELD_AUTHORITY`; add serial number / machine UUID as match keys.
-- [ ] **0.5 Credential vault** — `scan_credentials` table (`EncryptedJSON`):
+      *Done:* `devices.serial_number` / `hardware_uuid` (migration 0003);
+      placeholder serials such as "To be filled by O.E.M." never match.
+- [x] **0.5 Credential vault** — `scan_credentials` table (`EncryptedJSON`):
       types `windows`, `ssh_password`, `ssh_key`, `snmp_v2c`, `snmp_v3`,
       `vmware`, `cloud_*`. Admin-only CRUD, secrets never returned to the UI,
       "test credential" action, every change audited.
-- [ ] **0.6 Scan targets** — `scan_targets` table: type (CIDR, IP range, host
+      *Done* except "test credential", which needs the protocol clients and
+      moves to Phase 2 (2.9). `cloud_*` types arrive with Phase 5.
+- [x] **0.6 Scan targets** — `scan_targets` table: type (CIDR, IP range, host
       list, AD OU), cron schedule, ordered credential list, enabled scan methods,
       concurrency. Scheduler registers one job per target (alongside connectors).
-- [ ] **0.7 Scan runs & per-host results** — `scan_runs` + `scan_host_results`
+      *Done* for CIDR / range / host list; AD OU targets are 2.6. Also fixed:
+      scheduled **connector** syncs had never registered (closures can't be
+      stored by the persistent job store) and weren't registered at startup.
+- [x] **0.7 Scan runs & per-host results** — `scan_runs` + `scan_host_results`
       (status, method used, credential used, error code/message, duration). This
       is Lansweeper's "scan queue / scan errors" view.
-- [ ] **0.8 Licence modules** — add to `KNOWN_MODULES` and gate routers:
+      *Done:* `scanning/runner.py` (background runs, one per target, cancel,
+      runs interrupted by a restart are closed on startup); Scanning page with
+      Targets / Credentials / History tabs.
+- [x] **0.8 Licence modules** — add to `KNOWN_MODULES` and gate routers:
       `discovery_plus` (credentialed scanning), `reporting`, `topology`,
       `cloud`, `ot`. Dev licence re-issued with all modules.
 - [x] **0.9 Test harness** — async API test client fixture (SQLite) + factories;
@@ -184,6 +197,8 @@ Remember the working credential per device to skip failed attempts next time.
 - [ ] 2.7 Scan errors UI with plain-language causes ("Access denied — account is
       not a local admin", "RPC server unavailable — firewall blocks 135") and
       fix hints, like Lansweeper's troubleshooting view.
+- [ ] 2.9 "Test credential" action: try a credential against one host and
+      report the exact failure (moved from 0.5).
 - [ ] 2.8 Admin guide: least-privilege accounts per method, firewall ports,
       Group Policy to enable WinRM, and host-networking requirement for Docker
       (a bridge-networked container cannot sweep the real LAN).
