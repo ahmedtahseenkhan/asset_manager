@@ -135,37 +135,45 @@ every later collector reuses.
   old value, new value, source, detected_at
 
 **Agents**
-- [ ] 1.1 Windows `itam_agent.ps1` v2 — `Win32_QuickFixEngineering`, `Get-Service`,
+- [x] 1.1 Windows `itam_agent.ps1` v2 — `Win32_QuickFixEngineering`, `Get-Service`,
       `Get-LocalUser` + Administrators group, `SecurityCenter2\AntiVirusProduct`,
       `Get-NetFirewallProfile`, `Get-BitLockerVolume`, `Get-Tpm`,
       `Confirm-SecureBootUEFI`, `WmiMonitorID`, volumes, NICs, printers, uptime.
-- [ ] 1.2 macOS/Linux `itam_agent.py` v2 — `softwareupdate --history` / package
+- [x] 1.2 macOS/Linux `itam_agent.py` v2 — `softwareupdate --history` / package
       history, `launchctl` / `systemctl`, `dscl` / `/etc/passwd` + sudo/admin
       groups, FileVault (`fdesetup`) / LUKS (`lsblk`), firewall (`socketfilterfw`
       / `ufw` / `firewalld`), disks, NICs. Stdlib only, as today.
-- [ ] 1.3 Agent reports its own `agent_version`; server shows outdated agents.
-- [ ] 1.4 Install helpers: Windows script that registers a Scheduled Task
+- [x] 1.3 Agent reports its own `agent_version`; server shows outdated agents.
+- [x] 1.4 Install helpers: Windows script that registers a Scheduled Task
       (SYSTEM, daily + at startup), Linux systemd timer, macOS launchd plist.
       Agents page shows copy-paste commands for each.
 
 **Server**
-- [ ] 1.5 Section upserts in `InventoryService`; software is diffed instead of
+- [x] 1.5 Section upserts in `InventoryService`; software is diffed instead of
       deleted/re-inserted.
-- [ ] 1.6 Change detection for: software installed/removed/upgraded, patch
+- [x] 1.6 Change detection for: software installed/removed/upgraded, patch
       added, RAM/CPU/disk change, OS upgrade, new local admin, AV or encryption
       turned off. Retention for `device_changes` via the existing retention service.
-- [ ] 1.7 Notification rules on risky changes (new local admin, AV disabled,
+- [x] 1.7 Notification rules on risky changes (new local admin, AV disabled,
       encryption off) using the existing SMTP/alert-rule plumbing.
 
 **UI**
-- [ ] 1.8 Device detail tabs: Overview · Hardware · Software · Patches ·
+- [x] 1.8 Device detail tabs: Overview · Hardware · Software · Patches ·
       Services · Users · Security · Changes (timeline).
-- [ ] 1.9 Dashboard tiles: no AV, encryption off, pending reboot, local-admin
+- [x] 1.9 Dashboard tiles: no AV, encryption off, pending reboot, local-admin
       sprawl, agents not reporting in 7 days.
 
 **Done when:** a Windows and a macOS/Linux machine report full v2 inventory;
 uninstalling an app or adding a local admin shows up in the Changes tab on the
 next report.
+
+*Status:* done. Verified end to end with the macOS agent on a real Mac and the
+Linux agent in Debian/Ubuntu containers (Python 3.7 and 3.12). The Windows
+agent is verified for syntax and report shape under PowerShell with stubbed
+Windows cmdlets, **not yet on a real Windows machine** — first real-world run
+should use `-DryRun`. The systemd unit files pass `systemd-analyze verify`;
+the macOS LaunchDaemon install path has not been executed (it needs root on a
+Mac). Linux patch history is not collected (left "not collected").
 
 ---
 

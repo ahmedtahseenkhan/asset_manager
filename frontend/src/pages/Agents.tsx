@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAgentTokens, createAgentToken, toggleAgentToken } from '../api';
+import { getAgentTokens, createAgentToken, toggleAgentToken, getAgentFleet } from '../api';
+import { Link } from 'react-router-dom';
 import { API_BASE } from '../api/client';
-import { Radar, Plus, Copy, Power, Terminal } from 'lucide-react';
-import { format } from 'date-fns';
+import { Radar, Plus, Copy, Power, Terminal, Download, MonitorCheck } from 'lucide-react';
+import { format, formatDistanceToNowStrict, differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 
 export default function Agents() {
@@ -24,12 +25,18 @@ export default function Agents() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-tokens'] }),
   });
 
+  const { data: fleetRes } = useQuery({ queryKey: ['agent-fleet'], queryFn: getAgentFleet });
+  const fleet = fleetRes?.data;
+
   const tok = newToken ?? '<agent-token>';
+  const dl = `${server}/api/agents/download`;
+  const winInstall = `iwr -UseBasicParsing "${dl}/install_agent.ps1" -OutFile install_agent.ps1; powershell -ExecutionPolicy Bypass -File .\\install_agent.ps1 -Server "${server}" -Token "${tok}"`;
+  const nixInstall = `curl -fsSL ${dl}/install_agent.sh | sudo sh -s -- --server ${server} --token ${tok}`;
   const win = `powershell -ExecutionPolicy Bypass -File itam_agent.ps1 -Server "${server}" -Token "${tok}"`;
   const nix = `python3 itam_agent.py --server ${server} --token ${tok}`;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-6xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-50 flex items-center gap-3">
           <Radar className="w-8 h-8 text-indigo-400" /> Agents
@@ -91,20 +98,83 @@ export default function Agents() {
 
       {/* Install instructions */}
       <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50">
-        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Terminal className="w-4 h-4" /> Deploy the agent
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+          <Terminal className="w-4 h-4" /> Install the agent
         </h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Installs the agent, schedules a daily report plus one shortly after boot, and sends the first report right away.
+          {!newToken && ' Create a token above and the commands below fill it in.'}
+        </p>
         <div className="space-y-4">
-          <div>
-            <p className="text-sm text-slate-300 mb-1">Windows (PowerShell) — <code className="text-slate-400">agent/itam_agent.ps1</code></p>
-            <pre className="text-xs text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 overflow-x-auto font-mono">{win}</pre>
-          </div>
-          <div>
-            <p className="text-sm text-slate-300 mb-1">macOS / Linux (Python 3) — <code className="text-slate-400">agent/itam_agent.py</code></p>
-            <pre className="text-xs text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 overflow-x-auto font-mono">{nix}</pre>
-          </div>
-          <p className="text-xs text-slate-500">Schedule daily (Task Scheduler / cron / launchd) for continuous inventory. The agent needs no inbound access — it reports outbound to the server.</p>
+          {[
+            { label: 'Windows — in an elevated PowerShell', cmd: winInstall },
+            { label: 'macOS / Linux — in a terminal (needs sudo)', cmd: nixInstall },
+          ].map(({ label, cmd }) => (
+            <div key={label}>
+              <p className="text-sm text-slate-300 mb-1">{label}</p>
+              <div className="flex gap-2">
+                <pre className="flex-1 text-xs text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 overflow-x-auto font-mono">{cmd}</pre>
+                <button onClick={() => navigator.clipboard?.writeText(cmd)} className="p-2 text-slate-500 hover:text-slate-50 self-start" title="Copy">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <details className="text-sm">
+            <summary className="cursor-pointer text-slate-400 hover:text-slate-200">Run once without installing, or deploy with GPO / Intune / MDM</summary>
+            <div className="mt-3 space-y-3">
+              <pre className="text-xs text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 overflow-x-auto font-mono">{win}</pre>
+              <pre className="text-xs text-slate-300 bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 overflow-x-auto font-mono">{nix}</pre>
+              <p className="text-xs text-slate-500">
+                For software deployment tools, ship the installer together with the agent script (it uses a copy found next to itself) and run it with the same arguments.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {['install_agent.ps1', 'itam_agent.ps1', 'install_agent.sh', 'itam_agent.py'].map((f) => (
+                  <a key={f} href={`${dl}/${f}`} className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300">
+                    <Download className="w-3.5 h-3.5" />{f}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </details>
         </div>
+      </div>
+
+      {/* Fleet */}
+      <div className="bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-700/50">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <MonitorCheck className="w-4 h-4" /> Reporting devices ({fleet?.agents.length ?? 0})
+          {fleet && <span className="text-xs font-normal text-slate-500 normal-case">current agent version {fleet.latest_version}</span>}
+        </h2>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">
+              <th className="py-2">Device</th><th className="py-2">Operating system</th><th className="py-2">Agent</th><th className="py-2">Last report</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/50">
+            {(fleet?.agents ?? []).map((a) => {
+              const stale = a.last_report ? differenceInDays(new Date(), new Date(a.last_report)) >= 7 : true;
+              return (
+                <tr key={a.device_id}>
+                  <td className="py-2.5 text-sm"><Link to={`/devices/${a.device_id}`} className="text-slate-200 hover:text-indigo-400">{a.hostname ?? `#${a.device_id}`}</Link></td>
+                  <td className="py-2.5 text-sm text-slate-400">{a.os_name ?? '—'}</td>
+                  <td className="py-2.5 text-sm">
+                    <span className="font-mono text-slate-300">{a.version ?? 'unknown'}</span>
+                    {a.outdated && <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ring-1 ring-inset bg-yellow-500/15 text-yellow-400 ring-yellow-500/30">update</span>}
+                  </td>
+                  <td className={clsx('py-2.5 text-sm', stale ? 'text-yellow-400' : 'text-slate-400')}>
+                    {a.last_report ? `${formatDistanceToNowStrict(new Date(a.last_report))} ago` : 'never'}
+                  </td>
+                </tr>
+              );
+            })}
+            {fleet && fleet.agents.length === 0 && (
+              <tr><td colSpan={4} className="py-6 text-center text-slate-500 text-sm">No device has reported yet. Install the agent above.</td></tr>
+            )}
+          </tbody>
+        </table>
+        <p className="text-xs text-slate-500 mt-3">Outdated agents keep working; reinstall with the command above to update them. Reports older than 7 days are highlighted.</p>
       </div>
     </div>
   );

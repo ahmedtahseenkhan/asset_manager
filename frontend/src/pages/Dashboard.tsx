@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { getDashboardSummary } from '../api';
-import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getDashboardSummary, getEndpointHealth, getRecentChanges } from '../api';
+import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight, HeartPulse, Radar } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { describeChange } from '../lib/changes';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const CHART_COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#ec4899', '#8b5cf6'];
@@ -36,6 +38,81 @@ function Stat({ label, value, icon: Icon, tint, hint, onClick }: {
   );
 }
 
+const HEALTH_ORDER = ['no_antivirus', 'firewall_off', 'not_encrypted', 'admin_sprawl', 'pending_reboot', 'stale_inventory'];
+
+function EndpointHealthPanel() {
+  const navigate = useNavigate();
+  const { data: healthRes } = useQuery({ queryKey: ['endpoint-health'], queryFn: getEndpointHealth });
+  const { data: changesRes } = useQuery({
+    queryKey: ['recent-warnings'], queryFn: () => getRecentChanges({ severity: 'warning', days: 7, limit: 8 }),
+  });
+  const health = healthRes?.data;
+  if (!health) return null;
+
+  if (health.inventoried === 0) {
+    return (
+      <div className="bg-slate-800/70 backdrop-blur-sm p-6 rounded-xl border border-slate-700/60 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-lg grid place-items-center bg-indigo-500/15 text-indigo-400"><HeartPulse className="w-[18px] h-[18px]" /></span>
+          <div>
+            <p className="text-sm font-semibold text-slate-200">Endpoint health</p>
+            <p className="text-sm text-slate-500">Install the agent on your computers to see antivirus, firewall, encryption and local-admin status here.</p>
+          </div>
+        </div>
+        <Link to="/agents" className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-200 bg-slate-700/60 rounded-lg hover:bg-slate-700 shrink-0">
+          <Radar className="w-4 h-4" /> Deploy agents
+        </Link>
+      </div>
+    );
+  }
+
+  const warnings = changesRes?.data ?? [];
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="lg:col-span-3 bg-slate-800/70 backdrop-blur-sm p-6 rounded-xl border border-slate-700/60">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2"><HeartPulse className="w-4 h-4" /> Endpoint health</h2>
+          <span className="text-xs text-slate-500">{health.inventoried} device{health.inventoried === 1 ? '' : 's'} with inventory</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {HEALTH_ORDER.map((key) => {
+            const n = health.counts[key] ?? 0;
+            return (
+              <button key={key} onClick={() => navigate(`/devices?health=${key}`)}
+                className={`group text-left p-4 rounded-lg border transition-colors ${n > 0
+                  ? 'border-rose-500/30 bg-rose-500/10 hover:border-rose-500/50'
+                  : 'border-slate-700/60 bg-slate-900/30 hover:border-slate-600'}`}>
+                <p className={`text-2xl font-semibold tabular-nums ${n > 0 ? 'text-rose-400' : 'text-slate-300'}`}>{n}</p>
+                <p className="text-xs text-slate-400 mt-1">{health.labels[key]}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="lg:col-span-2 bg-slate-800/70 backdrop-blur-sm p-6 rounded-xl border border-slate-700/60">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Risky changes</h2>
+          <span className="text-xs text-slate-500">last 7 days · {health.warnings_7d}</span>
+        </div>
+        {warnings.length === 0 ? (
+          <p className="text-sm text-slate-500">No new local admins, and no antivirus, firewall or encryption turned off.</p>
+        ) : (
+          <ul className="space-y-2">
+            {warnings.map((c) => (
+              <li key={c.id} className="text-sm">
+                <Link to={`/devices/${c.device_id}`} className="font-medium text-slate-200 hover:text-indigo-400">{c.hostname || `#${c.device_id}`}</Link>
+                <span className="text-slate-400"> — {describeChange(c)}</span>
+                <span className="block text-xs text-slate-500">{formatDistanceToNowStrict(new Date(c.detected_at))} ago</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: res, isLoading: loading, refetch, isFetching } = useQuery({
@@ -66,6 +143,8 @@ export default function Dashboard() {
         <Stat label="Coverage gaps" value={data.coverage_gap_count ?? 0} icon={ShieldAlert}
           tint="bg-amber-500/15 text-amber-400" hint="without full coverage" onClick={() => navigate('/coverage-gaps')} />
       </div>
+
+      <EndpointHealthPanel />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* OS distribution */}

@@ -5,6 +5,7 @@ import type {
   Contract, ContractDetail, ContractListOut, EntitlementDetail, EntitlementListOut,
   SmtpSettingsOut, AlertRule, NotificationLogEntry,
   CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
+  DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -231,3 +232,15 @@ export const getScanRun = (id: number) =>
   apiClient.get<never, APIResponse<ScanRunDetail>>(`/scan/runs/${id}`);
 export const cancelScanRun = (id: number) =>
   apiClient.post<never, APIResponse<boolean>>(`/scan/runs/${id}/cancel`);
+
+// ── Device inventory & change history ─────────────────
+export const getDeviceInventory = (id: number) =>
+  apiClient.get<never, APIResponse<DeviceInventoryData>>(`/devices/${id}/inventory`);
+export const getDeviceChanges = (id: number, params: { category?: string; limit?: number; offset?: number } = {}) =>
+  apiClient.get<never, APIResponse<{ total: number; items: DeviceChange[] }>>(`/devices/${id}/changes`, { params });
+export const getRecentChanges = (params: { severity?: string; category?: string; days?: number; limit?: number } = {}) =>
+  apiClient.get<never, APIResponse<DeviceChange[]>>('/changes', { params });
+export const getEndpointHealth = () =>
+  apiClient.get<never, APIResponse<EndpointHealth>>('/dashboard/endpoint-health');
+export const getAgentFleet = () =>
+  apiClient.get<never, APIResponse<AgentFleet>>('/agents/fleet');

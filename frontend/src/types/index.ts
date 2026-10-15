@@ -35,6 +35,8 @@ export interface Device {
   first_seen: string;
   last_seen: string | null;
   status: string;
+  serial_number?: string | null;
+  hardware_uuid?: string | null;
   sources: DeviceSource[];
 }
 
@@ -374,4 +376,69 @@ export interface ScanHostResult {
 
 export interface ScanRunDetail extends ScanRun {
   hosts: ScanHostResult[];
+}
+
+// ── Device inventory (agent / credentialed scans) ────
+export interface InventorySummary {
+  source: string | null;
+  collector_version: string | null;
+  collected_at: string | null;
+  sections_collected: string[];
+  manufacturer: string | null; model: string | null; chassis_type: string | null; is_virtual: boolean | null;
+  cpu: string | null; cpu_cores: number | null; cpu_logical: number | null; ram_gb: number | null; disk_gb: number | null;
+  bios_vendor: string | null; bios_version: string | null; bios_date: string | null; motherboard: string | null;
+  os_name: string | null; os_version: string | null; os_build: string | null; architecture: string | null;
+  last_boot: string | null; logged_in_user: string | null; pending_reboot: boolean | null;
+  tpm_present: boolean | null; tpm_ready: boolean | null; secure_boot: boolean | null;
+  firewall_profiles: { profile: string; enabled: boolean | null }[] | null;
+  firewall_ok: boolean | null; antivirus_ok: boolean | null; disk_encrypted: boolean | null;
+  local_admin_count: number | null;
+}
+
+export interface DeviceInventoryData {
+  summary: InventorySummary | null;
+  patches?: { patch_id: string; description: string | null; installed_on: string | null; first_seen: string | null }[];
+  services?: { name: string; display_name: string | null; state: string | null; start_mode: string | null; account: string | null }[];
+  local_accounts?: { name: string; enabled: boolean | null; is_admin: boolean | null; last_logon: string | null }[];
+  antivirus?: { name: string; enabled: boolean | null; up_to_date: boolean | null; definitions_date: string | null }[];
+  volumes?: {
+    name: string; filesystem: string | null; size_gb: number | null; free_gb: number | null;
+    encryption_method: string | null; encrypted: boolean | null; encryption_status: string | null;
+  }[];
+  network_adapters?: {
+    name: string; mac: string | null; ip_addresses: string[]; speed_mbps: number | null;
+    dhcp: boolean | null; gateway: string | null; dns_servers: string[];
+  }[];
+  monitors?: { manufacturer: string | null; model: string | null; serial_number: string | null }[];
+  printers?: { name: string; driver: string | null; port: string | null; is_network: boolean | null; is_default: boolean | null }[];
+}
+
+export interface DeviceChange {
+  id: number;
+  device_id: number;
+  hostname?: string;
+  category: 'software' | 'patch' | 'hardware' | 'os' | 'account' | 'security' | 'service' | 'monitor';
+  change_type: 'added' | 'removed' | 'changed';
+  item: string;
+  field: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  severity: 'info' | 'warning';
+  source: string | null;
+  detected_at: string;
+}
+
+export interface EndpointHealth {
+  inventoried: number;
+  counts: Record<string, number>;
+  labels: Record<string, string>;
+  warnings_7d: number;
+}
+
+export interface AgentFleet {
+  latest_version: string;
+  agents: {
+    device_id: number; hostname: string | null; status: string; os_name: string | null;
+    version: string | null; outdated: boolean; last_report: string | null;
+  }[];
 }

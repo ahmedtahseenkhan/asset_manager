@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getDevices } from '../api';
 import type { Device } from '../types';
 import {
@@ -9,8 +9,14 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Download, X, HeartPulse } from 'lucide-react';
 import { format } from 'date-fns';
+
+// Mirrors HEALTH_LABELS in backend/services/endpoint_health.py
+const HEALTH_LABELS: Record<string, string> = {
+  no_antivirus: 'No working antivirus', firewall_off: 'Firewall off', not_encrypted: 'Disk not encrypted',
+  pending_reboot: 'Reboot pending', admin_sprawl: '3+ local admins', stale_inventory: 'No inventory for 7+ days',
+};
 
 function exportCsv(devices: Device[]) {
   const headers = ['Hostname', 'FQDN', 'IP Addresses', 'OS', 'OS Version', 'Domain', 'Status', 'Last Seen', 'Sources'];
@@ -59,9 +65,15 @@ export default function Devices() {
   // Create a separate state for the submitted search query
   const [submittedSearch, setSubmittedSearch] = useState("");
 
+  // Endpoint-health filter, set by the dashboard tiles (?health=no_antivirus)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const health = searchParams.get('health') ?? '';
+
   const { data: res, isLoading: loading } = useQuery({
-    queryKey: ['devices', page, size, osFilter, submittedSearch],
-    queryFn: () => getDevices(page, size, { search: submittedSearch, os_name: osFilter }),
+    queryKey: ['devices', page, size, osFilter, submittedSearch, health],
+    queryFn: () => getDevices(page, size, {
+      search: submittedSearch, os_name: osFilter, ...(health ? { health } : {}),
+    }),
   });
   
   const data = res?.data.items || [];
@@ -163,6 +175,15 @@ export default function Devices() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-50">Device Inventory</h1>
           <p className="text-slate-400 mt-1">Unified view of all IT assets discovered across {total} records.</p>
+          {health && (
+            <span className="inline-flex items-center gap-2 mt-3 pl-3 pr-1.5 py-1 rounded-full text-sm bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/30">
+              <HeartPulse className="w-3.5 h-3.5" />
+              {HEALTH_LABELS[health] ?? health}
+              <button onClick={() => { setSearchParams({}); setPage(1); }} className="p-0.5 rounded-full hover:bg-rose-500/20" aria-label="Clear filter">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
         </div>
         
         <button

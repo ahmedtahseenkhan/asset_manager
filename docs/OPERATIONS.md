@@ -36,42 +36,75 @@ failed with that reason.
 
 ## 1. Agent rollout (the deepest, most reliable inventory)
 
-A network scan sees *presence*; the **agent** sees *identity* — exact OS and
-version, serial number, model, CPU/RAM/disk, logged-in user, and the full list
-of installed software. It reports **outbound** to the server, so it works
-through firewalls, behind client-isolated Wi-Fi, and for off-network laptops —
-the cases a scan can't reach.
+A network scan sees *presence*; the **agent** sees *identity and state*. It
+reports **outbound** to the server, so it works through firewalls, behind
+client-isolated Wi-Fi, and for off-network laptops.
+
+**What agent 2.0 collects** — hardware (make, model, serial, CPU, RAM, BIOS),
+OS with build/patch level, installed software, installed updates (Windows
+hotfixes; macOS software updates), services, local accounts and who is in the
+Administrators group, antivirus status, firewall, disk encryption (BitLocker /
+FileVault / LUKS), TPM and Secure Boot, disks, network adapters, monitors,
+printers, last boot, pending reboot. Each part is collected independently: if
+one fails (e.g. no admin rights for BitLocker), the rest still reports and the
+server keeps the last known value for the part that failed.
 
 ### Step 1 — create an enrollment token
 **Agents → Enrollment tokens → Create** (label it, e.g. `laptops-2026`). Copy
 the token immediately; it is shown once. Disable/rotate tokens any time.
 
-### Step 2 — run the agent on each device
-The Agents page shows ready-to-paste commands with your server URL and token.
+### Step 2 — install the agent
+The Agents page shows ready-to-paste commands with your server URL and token
+filled in. The installers set up a **daily report plus one shortly after
+boot**, and send the first report immediately.
 
-- **Windows** (`agent/itam_agent.ps1`):
+- **Windows** (elevated PowerShell) — installs to `%ProgramData%\ITAM`
+  (readable only by SYSTEM and Administrators) and registers the scheduled task
+  *ITAM Inventory Agent*, running as SYSTEM:
   ```
-  powershell -ExecutionPolicy Bypass -File itam_agent.ps1 -Server "http://<server>:8000" -Token "<token>"
+  iwr -UseBasicParsing "http://<server>/api/agents/download/install_agent.ps1" -OutFile install_agent.ps1
+  powershell -ExecutionPolicy Bypass -File .\install_agent.ps1 -Server "http://<server>" -Token "<token>"
   ```
-- **macOS / Linux** (`agent/itam_agent.py`, stdlib only — no pip install):
+- **macOS / Linux** (needs sudo; Python 3.7+, stdlib only) — Linux uses a
+  systemd timer (cron where systemd is absent), macOS a LaunchDaemon. The token
+  is kept in a root-only file (`/etc/itam/agent.env`, `/Library/ITAM/agent.env`):
   ```
-  python3 itam_agent.py --server http://<server>:8000 --token <token>
+  curl -fsSL http://<server>/api/agents/download/install_agent.sh | sudo sh -s -- --server http://<server> --token <token>
   ```
+- **GPO / Intune / MDM** — deploy `install_agent.*` together with
+  `itam_agent.*` (download links under *Run once without installing*); the
+  installer uses the agent file found next to it.
+- **Uninstall** — `install_agent.ps1 -Uninstall` / `install_agent.sh --uninstall`.
+- **Check what an agent would send** — `itam_agent.ps1 -DryRun` /
+  `itam_agent.py --dry-run` prints the report without sending it.
 
-### Step 3 — schedule it for continuous inventory
-- **Windows**: Task Scheduler → daily trigger → the PowerShell command above.
-- **macOS**: a `launchd` plist, or `cron`.
-- **Linux**: a `cron` entry, e.g. `0 7 * * * python3 /opt/itam/itam_agent.py --server … --token …`.
+The **Reporting devices** list on the Agents page shows every agent's version
+and last report; agents older than the current version are marked *update*
+(reinstall to update), and reports older than 7 days are highlighted.
 
 ### What the agent does to your data
-- Creates/updates the device (source `agent`) via the correlator — merges with
-  the same machine already seen by the scan (matched on hostname).
-- Stores the installed-software list (visible on the device page).
-- **Pushes real serial / model / OS / IP / MAC onto the linked asset** — the
-  agent is authoritative for these, so adopted assets self-populate.
+- Creates/updates the device (source `agent`) — merged with the same machine
+  seen by scans or other connectors on hardware UUID, serial number or name.
+- Fills the device page tabs: Hardware, Software, Updates, Services, Users,
+  Security, Changes.
+- **Pushes real serial / model / OS / IP / MAC onto the linked asset.**
 
-> One agent report replaces the "can't read a locked-down laptop" problem
-> entirely. Deploy it to the machines you couldn't scan.
+### Change history and alerts
+From the second report onwards, differences are recorded on the device's
+**Changes** tab: software installed / removed / updated, updates installed,
+hardware and OS changes, new or changed local accounts, services added or
+removed. The first report is a baseline and records nothing.
+
+Risky changes are flagged in red and listed on the dashboard: **a new local
+admin, an account becoming admin, antivirus removed or disabled, firewall
+turned off, disk encryption turned off**. Enable **Notifications → Risky device
+changes** to get a daily email of them; each change is emailed once. History is
+kept for 365 days.
+
+### Endpoint health
+The dashboard's **Endpoint health** panel counts devices with no working
+antivirus, firewall off, unencrypted disks, 3+ local admins, a pending reboot,
+or no inventory for 7+ days. Each tile opens the matching device list.
 
 ---
 
@@ -153,7 +186,7 @@ fields (via the asset form or **bulk edit**) to make these meaningful.
 
 1. **Scan** your real LAN (Scanning → Scan targets) to find what's there.
 2. **Adopt** the devices you manage (Assets → Reconcile).
-3. **Deploy agents** to endpoints → real serial/OS/software auto-populate.
+3. **Deploy agents** (Agents page installers) → hardware, software, patches and security posture auto-populate.
 4. **Classify** in bulk — set criticality, data classification, owner.
 5. **Onboard log sources** and mark `log_source_status` → posture coverage rises.
 6. **Import vulnerabilities** regularly → risk ranking stays current.

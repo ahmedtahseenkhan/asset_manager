@@ -25,6 +25,8 @@ class DeviceOut(BaseModel):
     first_seen: datetime
     last_seen: Optional[datetime]
     status: str
+    serial_number: Optional[str] = None
+    hardware_uuid: Optional[str] = None
     sources: List[DeviceSourceOut] = []
 
     class Config:

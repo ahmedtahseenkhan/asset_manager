@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getDeviceById, getDeviceSoftware } from '../api';
+import { getDeviceById, getDeviceInventory } from '../api';
 import type { DeviceSource } from '../types';
+import {
+  ChangesTab, Flag, HardwareTab, PatchesTab, SecurityTab, ServicesTab, SoftwareTab, UsersTab,
+} from '../components/device/InventoryTabs';
+import clsx from 'clsx';
 import {
   ArrowLeft, Laptop, Clock, Globe, Network, Cpu, Radar,
   ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle,
@@ -74,35 +78,6 @@ function RawDataAccordion({ source }: { source: DeviceSource }) {
   );
 }
 
-function SoftwareCard({ deviceId }: { deviceId: number }) {
-  const [q, setQ] = useState('');
-  const { data } = useQuery({ queryKey: ['device-software', deviceId], queryFn: () => getDeviceSoftware(deviceId) });
-  const all = data?.data ?? [];
-  const filtered = q ? all.filter((s: any) => s.name.toLowerCase().includes(q.toLowerCase())) : all;
-  return (
-    <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Installed Software ({all.length})</h2>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter…"
-          className="px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48" />
-      </div>
-      <div className="max-h-72 overflow-y-auto">
-        <table className="w-full text-left border-collapse">
-          <tbody className="divide-y divide-slate-700/40">
-            {filtered.map((s: any) => (
-              <tr key={s.id}>
-                <td className="py-1.5 text-sm text-slate-200">{s.name}</td>
-                <td className="py-1.5 text-sm text-slate-500 font-mono text-right">{s.version ?? ''}</td>
-              </tr>
-            ))}
-            {filtered.length === 0 && <tr><td className="py-4 text-sm text-slate-500">No matches.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between py-3 border-b border-slate-700/40 last:border-0">
@@ -123,6 +98,13 @@ export default function DeviceDetail() {
   });
 
   const device = res?.data;
+  const { data: invRes } = useQuery({
+    queryKey: ['device-inventory', id],
+    queryFn: () => getDeviceInventory(Number(id)),
+    enabled: !!id,
+  });
+  const inv = invRes?.data;
+  const [tab, setTab] = useState('overview');
 
   if (isLoading) {
     return (
@@ -151,9 +133,22 @@ export default function DeviceDetail() {
   const StatusIcon = statusCfg.icon;
 
   // Surface the network-scan enrichment (stored per-source in raw_data.extra).
-  const scanSource = device.sources.find((s) => s.raw_data?.extra);
+  const scanSource = device.sources.find((s) => s.source_name === 'network_scan')
+    ?? device.sources.find((s) => s.raw_data?.extra && 'open_ports' in (s.raw_data.extra as object));
   const extra = scanSource?.raw_data?.extra as Record<string, unknown> | undefined;
   const hasAgent = device.sources.some((s) => s.source_name === 'agent');
+  const summary = inv?.summary ?? null;
+  const tabs = [
+    { id: 'overview', label: 'Overview', show: true },
+    { id: 'hardware', label: 'Hardware', show: !!summary },
+    { id: 'software', label: 'Software', show: hasAgent || !!summary },
+    { id: 'patches', label: 'Updates', show: !!summary?.sections_collected.includes('patches') },
+    { id: 'services', label: 'Services', show: !!summary?.sections_collected.includes('services') },
+    { id: 'users', label: 'Users', show: !!summary?.sections_collected.includes('local_accounts') },
+    { id: 'security', label: 'Security', show: !!summary },
+    { id: 'changes', label: 'Changes', show: !!summary },
+  ].filter((t) => t.show);
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : 'overview';
 
   return (
     <div className="space-y-6">
@@ -200,7 +195,42 @@ export default function DeviceDetail() {
             ))}
           </div>
         </div>
+        {summary && (
+          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5 pt-4 border-t border-slate-700/40">
+            <Flag value={summary.antivirus_ok} good="Antivirus OK" bad="No working antivirus" unknown="Antivirus unknown" />
+            <Flag value={summary.firewall_ok} good="Firewall on" bad="Firewall off" unknown="Firewall unknown" />
+            <Flag value={summary.disk_encrypted} good="Disk encrypted" bad="Disk not encrypted" unknown="Encryption unknown" />
+            {summary.pending_reboot && <Flag value={true} good="Reboot pending" bad="" invert />}
+            {summary.collected_at && (
+              <span className="text-xs text-slate-500 self-center ml-auto">
+                Inventory {format(new Date(summary.collected_at), 'MMM d, yyyy HH:mm')} · {summary.source} {summary.collector_version}
+              </span>
+            )}
+          </div>
+        )}
       </div>
+
+      {tabs.length > 1 && (
+        <div className="flex gap-1 border-b border-slate-700/60 overflow-x-auto">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={clsx('px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap',
+                activeTab === t.id ? 'border-indigo-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-200')}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'hardware' && inv && <HardwareTab inv={inv} serial={device.serial_number} />}
+      {activeTab === 'software' && <SoftwareTab deviceId={device.id} />}
+      {activeTab === 'patches' && inv && <PatchesTab inv={inv} />}
+      {activeTab === 'services' && inv && <ServicesTab inv={inv} />}
+      {activeTab === 'users' && inv && <UsersTab inv={inv} />}
+      {activeTab === 'security' && inv && <SecurityTab inv={inv} />}
+      {activeTab === 'changes' && <ChangesTab deviceId={device.id} />}
+
+      {activeTab === 'overview' && <>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Identity */}
@@ -330,9 +360,6 @@ export default function DeviceDetail() {
         </div>
       )}
 
-      {/* Installed software (from agent) */}
-      {hasAgent && <SoftwareCard deviceId={device.id} />}
-
       {/* Raw source data */}
       {device.sources.length > 0 && (
         <div>
@@ -346,6 +373,7 @@ export default function DeviceDetail() {
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 }
