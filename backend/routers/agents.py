@@ -1,8 +1,8 @@
 import secrets
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,51 +12,27 @@ from backend.models.agent import AgentToken
 from backend.models.software import InstalledSoftware
 from backend.models.user import User
 from backend.schemas.common import APIResponse
-from backend.services.agent_service import AgentService
+from backend.services.agent_service import AgentService, parse_agent_report
 from backend.services.audit_service import AuditService
 
 router = APIRouter(tags=["Agents"])
 
 
 # ── Agent report ingestion (token-authenticated, not JWT) ─────────────────
-class SoftwareItem(BaseModel):
-    name: str
-    version: Optional[str] = None
-    publisher: Optional[str] = None
-
-
-class AgentReport(BaseModel):
-    hostname: Optional[str] = None
-    fqdn: Optional[str] = None
-    machine_id: Optional[str] = None
-    os_name: Optional[str] = None
-    os_version: Optional[str] = None
-    domain: Optional[str] = None
-    serial_number: Optional[str] = None
-    manufacturer: Optional[str] = None
-    model: Optional[str] = None
-    cpu: Optional[str] = None
-    ram_gb: Optional[float] = None
-    disk_gb: Optional[float] = None
-    logged_in_user: Optional[str] = None
-    ip_addresses: List[str] = Field(default_factory=list)
-    mac_addresses: List[str] = Field(default_factory=list)
-    software: List[SoftwareItem] = Field(default_factory=list, max_length=5000)
-
-
 @router.post("/ingest/agent", response_model=APIResponse[Dict[str, Any]])
 async def ingest_agent(
-    report: AgentReport,
+    payload: Dict[str, Any] = Body(...),
     x_agent_token: str = Header(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     token_row = await AgentService.validate_token(db, x_agent_token)
     if not token_row:
         raise HTTPException(401, "Invalid or inactive agent token")
-    result = await AgentService.ingest(
-        db, token_row,
-        {**report.model_dump(), "software": [s.model_dump() for s in report.software]},
-    )
+    try:
+        report = parse_agent_report(payload)
+    except ValidationError as exc:
+        raise HTTPException(422, exc.errors(include_url=False, include_input=False))
+    result = await AgentService.ingest(db, token_row, report)
     return APIResponse(data=result, message="Inventory received")
 
 

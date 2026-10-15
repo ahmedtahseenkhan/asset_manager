@@ -15,14 +15,43 @@ logger = logging.getLogger(__name__)
 
 # Source authority: which connector "wins" for each field.
 # Lower index = higher authority. Last-writer-wins when source is not listed.
+# Sources that read the machine itself (agent, credentialed scans) know its OS
+# exactly; AD stays authoritative for directory identity (name, domain, OU).
+_HOST_SOURCES = ["agent", "winrm", "wmi", "ssh"]
+_EDR_SOURCES = ["crowdstrike", "defender", "mcafee", "symantec"]
 _FIELD_AUTHORITY: dict[str, list[str]] = {
-    "hostname": ["ad", "defender", "crowdstrike", "mcafee", "symantec"],
-    "fqdn":     ["ad", "defender", "crowdstrike", "mcafee", "symantec"],
-    "domain":   ["ad"],
-    "ou":       ["ad"],
-    "os_name":  ["crowdstrike", "defender", "ad", "mcafee", "symantec"],
-    "os_version": ["crowdstrike", "defender", "ad", "mcafee", "symantec"],
+    "hostname":   ["ad", *_HOST_SOURCES, *_EDR_SOURCES, "snmp"],
+    "fqdn":       ["ad", *_HOST_SOURCES, *_EDR_SOURCES, "snmp"],
+    "domain":     ["ad", *_HOST_SOURCES],
+    "ou":         ["ad"],
+    "os_name":    [*_HOST_SOURCES, *_EDR_SOURCES, "ad", "snmp"],
+    "os_version": [*_HOST_SOURCES, *_EDR_SOURCES, "ad", "snmp"],
 }
+
+# Placeholder values firmware ships when the OEM never set a real one. Matching
+# on these would merge unrelated machines.
+_JUNK_SERIALS = {
+    "", "0", "none", "null", "n/a", "na", "unknown", "invalid", "default string",
+    "to be filled by o.e.m.", "system serial number", "chassis serial number",
+    "not specified", "not applicable", "123456789", "0123456789", "serial",
+}
+_JUNK_UUIDS = {
+    "00000000-0000-0000-0000-000000000000",
+    "ffffffff-ffff-ffff-ffff-ffffffffffff",
+    "03000200-0400-0500-0006-000700080009",
+}
+
+
+def hardware_identity(raw: RawDeviceRecord) -> Tuple[str | None, str | None]:
+    """(serial_number, hardware_uuid) from a raw record, or None for placeholders."""
+    extra = raw.get("extra") or {}
+    serial = (raw.get("serial_number") or extra.get("serial_number") or "").strip()
+    hw_uuid = (raw.get("hardware_uuid") or extra.get("hardware_uuid") or "").strip().lower()
+    if serial.lower() in _JUNK_SERIALS or len(set(serial)) == 1:  # e.g. "00000000"
+        serial = ""
+    if hw_uuid in _JUNK_UUIDS:
+        hw_uuid = ""
+    return serial or None, hw_uuid or None
 
 
 def _source_priority(source_name: str, field: str) -> int:
@@ -57,10 +86,13 @@ class Correlator:
     async def _find_existing_device(
         db: AsyncSession, source_name: str, source_uid: str | None,
         fqdn: str, hostname: str, macs: List[str],
+        serial: str | None = None, hw_uuid: str | None = None,
     ) -> Device | None:
         """
         Finds an existing device to merge into, in priority order:
         0. Same connector already tracks this exact source_uid  — definitive for re-syncs
+        0b. Hardware UUID, then serial number — same physical/virtual machine even
+            when it was renamed or is seen by a different source
         1. FQDN exact match  — most specific; avoids hostname collisions across domains
         2. Hostname match    — fallback when FQDN is unavailable (e.g. CrowdStrike)
         3. MAC address match — last resort for nameless devices (skipped for IP-identity
@@ -76,6 +108,15 @@ class Correlator:
                        DeviceSource.source_uid == source_uid)
             )
             dev = result.scalars().first()
+            if dev:
+                return dev
+
+        if hw_uuid:
+            dev = (await db.execute(select(Device).where(Device.hardware_uuid == hw_uuid))).scalars().first()
+            if dev:
+                return dev
+        if serial:
+            dev = (await db.execute(select(Device).where(Device.serial_number == serial))).scalars().first()
             if dev:
                 return dev
 
@@ -129,96 +170,113 @@ class Correlator:
         """Processes a batch of raw records. Returns (created_cnt, updated_cnt)."""
         created = 0
         updated = 0
-        now = datetime.now(timezone.utc)
-
         for raw in raw_devices:
-            unified = Normalizer.normalize(source_name, raw)
-            raw_source_uid = raw.get("source_uid")
-
-            device = await Correlator._find_existing_device(
-                db, source_name, raw_source_uid,
-                unified.fqdn, unified.hostname, unified.mac_addresses,
-            )
-
-            if not device:
-                device = Device(
-                    hostname=unified.hostname,
-                    fqdn=unified.fqdn,
-                    ip_addresses=unified.ip_addresses,
-                    mac_addresses=unified.mac_addresses,
-                    os_name=unified.os_family,
-                    os_version=unified.os_version,
-                    domain=unified.domain,
-                    ou=unified.ou,
-                    last_seen=unified.last_seen or now,
-                    first_seen=now,
-                    status="active",
-                )
-                db.add(device)
-                await db.flush()
+            _, is_new = await Correlator.upsert_device(db, source_name, raw)
+            if is_new:
                 created += 1
             else:
-                # Respect source authority when merging fields
-                existing_sources: List[DeviceSource] = []
-                src_result = await db.execute(
-                    select(DeviceSource).where(DeviceSource.device_id == device.id)
-                )
-                existing_sources = src_result.scalars().all()
-
-                if unified.hostname and Correlator._should_update_field(existing_sources, source_name, "hostname"):
-                    device.hostname = unified.hostname
-                if unified.fqdn and Correlator._should_update_field(existing_sources, source_name, "fqdn"):
-                    device.fqdn = unified.fqdn
-                if unified.os_family and Correlator._should_update_field(existing_sources, source_name, "os_name"):
-                    device.os_name = unified.os_family
-                if unified.os_version and Correlator._should_update_field(existing_sources, source_name, "os_version"):
-                    device.os_version = unified.os_version
-                if unified.domain and Correlator._should_update_field(existing_sources, source_name, "domain"):
-                    device.domain = unified.domain
-                if unified.ou and Correlator._should_update_field(existing_sources, source_name, "ou"):
-                    device.ou = unified.ou
-                # IPs & MACs: always merge (union), not overwrite
-                if unified.ip_addresses:
-                    existing_ips = set(device.ip_addresses or [])
-                    existing_ips.update(unified.ip_addresses)
-                    device.ip_addresses = sorted(existing_ips)
-                if unified.mac_addresses:
-                    existing_macs = set(device.mac_addresses or [])
-                    existing_macs.update(unified.mac_addresses)
-                    device.mac_addresses = sorted(existing_macs)
-
-                incoming_last_seen = unified.last_seen or now
-                device_last_seen = device.last_seen.replace(tzinfo=timezone.utc) if device.last_seen else None
-                if not device_last_seen or incoming_last_seen > device_last_seen:
-                    device.last_seen = incoming_last_seen
-
-                device.status = "active"
                 updated += 1
-
-            # Upsert DeviceSource
-            result = await db.execute(
-                select(DeviceSource)
-                .where(DeviceSource.device_id == device.id)
-                .where(DeviceSource.source_name == source_name)
-            )
-            device_source = result.scalars().first()
-
-            source_uid = raw.get("source_uid") or str(device.id)
-            if not device_source:
-                device_source = DeviceSource(
-                    device_id=device.id,
-                    source_name=source_name,
-                    source_uid=source_uid,
-                    raw_data=Correlator._json_safe(raw),
-                    last_synced=now,
-                )
-                db.add(device_source)
-            else:
-                device_source.raw_data = Correlator._json_safe(raw)
-                device_source.last_synced = now
-
         await db.commit()
         return created, updated
+
+    @staticmethod
+    async def upsert_device(db: AsyncSession, source_name: str, raw: RawDeviceRecord) -> Tuple[Device, bool]:
+        """Merge one raw record into the device table. Flushes, does not commit.
+        Returns (device, created)."""
+        now = datetime.now(timezone.utc)
+        unified = Normalizer.normalize(source_name, raw)
+        raw_source_uid = raw.get("source_uid")
+        serial, hw_uuid = hardware_identity(raw)
+
+        device = await Correlator._find_existing_device(
+            db, source_name, raw_source_uid,
+            unified.fqdn, unified.hostname, unified.mac_addresses,
+            serial=serial, hw_uuid=hw_uuid,
+        )
+
+        created = device is None
+        if created:
+            device = Device(
+                hostname=unified.hostname,
+                fqdn=unified.fqdn,
+                ip_addresses=unified.ip_addresses,
+                mac_addresses=unified.mac_addresses,
+                os_name=unified.os_family,
+                os_version=unified.os_version,
+                domain=unified.domain,
+                ou=unified.ou,
+                serial_number=serial,
+                hardware_uuid=hw_uuid,
+                last_seen=unified.last_seen or now,
+                first_seen=now,
+                status="active",
+            )
+            db.add(device)
+            await db.flush()
+        else:
+            # Respect source authority when merging fields
+            src_result = await db.execute(
+                select(DeviceSource).where(DeviceSource.device_id == device.id)
+            )
+            existing_sources: List[DeviceSource] = src_result.scalars().all()
+
+            if unified.hostname and Correlator._should_update_field(existing_sources, source_name, "hostname"):
+                device.hostname = unified.hostname
+            if unified.fqdn and Correlator._should_update_field(existing_sources, source_name, "fqdn"):
+                device.fqdn = unified.fqdn
+            if unified.os_family and Correlator._should_update_field(existing_sources, source_name, "os_name"):
+                device.os_name = unified.os_family
+            if unified.os_version and Correlator._should_update_field(existing_sources, source_name, "os_version"):
+                device.os_version = unified.os_version
+            if unified.domain and Correlator._should_update_field(existing_sources, source_name, "domain"):
+                device.domain = unified.domain
+            if unified.ou and Correlator._should_update_field(existing_sources, source_name, "ou"):
+                device.ou = unified.ou
+            # Hardware identity never changes for a machine: fill, don't overwrite.
+            if serial and not device.serial_number:
+                device.serial_number = serial
+            if hw_uuid and not device.hardware_uuid:
+                device.hardware_uuid = hw_uuid
+            # IPs & MACs: always merge (union), not overwrite
+            if unified.ip_addresses:
+                existing_ips = set(device.ip_addresses or [])
+                existing_ips.update(unified.ip_addresses)
+                device.ip_addresses = sorted(existing_ips)
+            if unified.mac_addresses:
+                existing_macs = set(device.mac_addresses or [])
+                existing_macs.update(unified.mac_addresses)
+                device.mac_addresses = sorted(existing_macs)
+
+            incoming_last_seen = unified.last_seen or now
+            device_last_seen = device.last_seen.replace(tzinfo=timezone.utc) if device.last_seen else None
+            if not device_last_seen or incoming_last_seen > device_last_seen:
+                device.last_seen = incoming_last_seen
+
+            device.status = "active"
+
+        # Upsert DeviceSource
+        result = await db.execute(
+            select(DeviceSource)
+            .where(DeviceSource.device_id == device.id)
+            .where(DeviceSource.source_name == source_name)
+        )
+        device_source = result.scalars().first()
+
+        source_uid = raw.get("source_uid") or str(device.id)
+        if not device_source:
+            db.add(DeviceSource(
+                device_id=device.id,
+                source_name=source_name,
+                source_uid=source_uid,
+                raw_data=Correlator._json_safe(raw),
+                last_synced=now,
+            ))
+        else:
+            device_source.source_uid = source_uid
+            device_source.raw_data = Correlator._json_safe(raw)
+            device_source.last_synced = now
+        await db.flush()
+        return device, created
 
     @staticmethod
     async def mark_stale_devices(

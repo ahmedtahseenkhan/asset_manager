@@ -33,7 +33,11 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-KNOWN_MODULES = ["assets", "cmdb", "contracts", "entitlements", "notifications", "connectors"]
+# Keep in sync with backend/licensing/modules.py (ALL_MODULES).
+KNOWN_MODULES = [
+    "assets", "cmdb", "contracts", "entitlements", "notifications", "connectors",
+    "discovery_plus", "reporting", "topology", "cloud", "ot",
+]
 
 
 def cmd_keygen(args: argparse.Namespace) -> None:

@@ -99,7 +99,7 @@ def schema_drift(conn: Connection) -> list:
         ddl_logger.setLevel(previous)
 
 
-def run_migrations(database_url: str | None = None) -> None:
+def run_migrations(database_url: str | None = None, revision: str = "head") -> None:
     engine = create_engine(_sync_url(database_url or settings.database_url), poolclass=NullPool)
     try:
         with engine.connect() as conn:
@@ -115,9 +115,9 @@ def run_migrations(database_url: str | None = None) -> None:
                     existing = set(inspect(conn).get_table_names())
                     if "alembic_version" not in existing and existing & _BASELINE_TABLES:
                         _adopt_legacy_schema(conn, cfg, existing)
-                    command.upgrade(cfg, "head")
+                    command.upgrade(cfg, revision)
 
-                    drift = schema_drift(conn)
+                    drift = schema_drift(conn) if revision == "head" else []
                     if drift:
                         logger.warning(
                             "Database schema differs from the models in %d place(s) — "

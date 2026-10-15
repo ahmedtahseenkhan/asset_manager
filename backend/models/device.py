@@ -18,6 +18,9 @@ class Device(Base):
     first_seen = Column(DateTime(timezone=True), server_default=func.now())
     last_seen = Column(DateTime(timezone=True), index=True)
     status = Column(String(50), default="active", index=True)  # active, inactive, retired
+    # Hardware identity, used to merge records of the same machine across sources.
+    serial_number = Column(String(255), index=True)
+    hardware_uuid = Column(String(64), index=True)   # SMBIOS system UUID
 
     # Relationships
     sources = relationship("DeviceSource", back_populates="device", cascade="all, delete-orphan")

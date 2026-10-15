@@ -4,10 +4,9 @@ after a model change, generate a revision:
 
     cd backend && ./.venv/bin/alembic revision --autogenerate -m "<what changed>"
 """
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 
-from backend.database import Base
-from backend.migrations import run_migrations, schema_drift
+from backend.migrations import BASELINE_REVISION, run_migrations, schema_drift
 
 
 def _urls(tmp_path):
@@ -33,11 +32,13 @@ def test_running_twice_is_a_noop(tmp_path):
 
 
 def test_legacy_create_all_database_is_adopted(tmp_path):
-    """Pre-Alembic installs: tables exist (some missing), no alembic_version."""
+    """Pre-Alembic installs: baseline-era tables (some missing), no alembic_version."""
     app_url, sync_url = _urls(tmp_path)
+    run_migrations(app_url, revision=BASELINE_REVISION)
     engine = create_engine(sync_url)
-    legacy = [t for name, t in Base.metadata.tables.items() if name != "vulnerabilities"]
-    Base.metadata.create_all(engine, tables=legacy)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE alembic_version"))
+        conn.execute(text("DROP TABLE vulnerabilities"))
 
     run_migrations(app_url)
 

@@ -71,14 +71,14 @@ Must land first; everything after depends on it.
       anywhere) + `0002_legacy_index_repair`; `backend/migrations.py` runs at
       startup under a Postgres advisory lock and adopts pre-Alembic installs;
       `tests/test_migrations.py` fails on any model change without a migration.
-- [ ] **0.2 `InventoryReport` v2 schema** (pydantic, versioned `schema_version`).
+- [x] **0.2 `InventoryReport` v2 schema** (pydantic, versioned `schema_version`).
       Sections: `system`, `hardware`, `os`, `software`, `patches`, `services`,
       `local_accounts`, `security`, `disks`, `network_adapters`, `monitors`,
       `printers`. Every section optional so partial collectors work.
-- [ ] **0.3 `InventoryService`** generalising `AgentService.ingest` with a
+- [x] **0.3 `InventoryService`** generalising `AgentService.ingest` with a
       `source` parameter (`agent`, `winrm`, `wmi`, `ssh`, `snmp`, `vmware`, …).
       Agent endpoint keeps accepting the v1 payload (map → v2).
-- [ ] **0.4 Correlator authority** — add `agent` (top) and the new scan sources to
+- [x] **0.4 Correlator authority** — add `agent` (top) and the new scan sources to
       `_FIELD_AUTHORITY`; add serial number / machine UUID as match keys.
 - [ ] **0.5 Credential vault** — `scan_credentials` table (`EncryptedJSON`):
       types `windows`, `ssh_password`, `ssh_key`, `snmp_v2c`, `snmp_v3`,
@@ -93,7 +93,7 @@ Must land first; everything after depends on it.
 - [ ] **0.8 Licence modules** — add to `KNOWN_MODULES` and gate routers:
       `discovery_plus` (credentialed scanning), `reporting`, `topology`,
       `cloud`, `ot`. Dev licence re-issued with all modules.
-- [ ] **0.9 Test harness** — async API test client fixture (SQLite) + factories;
+- [x] **0.9 Test harness** — async API test client fixture (SQLite) + factories;
       every later phase adds tests for its ingest/collector/report code.
 
 **Done when:** migrations upgrade a copy of the current dev DB cleanly; the agent
