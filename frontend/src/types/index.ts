@@ -331,7 +331,7 @@ export interface ScanTarget {
   id: number;
   name: string;
   enabled: boolean;
-  target_type: 'cidr' | 'range' | 'hosts';
+  target_type: 'cidr' | 'range' | 'hosts' | 'ad';
   value: string;
   exclusions: string;
   schedule_cron: string | null;
@@ -368,6 +368,7 @@ export interface ScanHostResult {
   status: 'alive' | 'inventoried' | 'failed';
   method: string | null;
   credential_id: number | null;
+  credential_name?: string | null;
   device_id: number | null;
   error_code: string | null;
   error_message: string | null;
@@ -441,4 +442,14 @@ export interface AgentFleet {
     device_id: number; hostname: string | null; status: string; os_name: string | null;
     version: string | null; outdated: boolean; last_report: string | null;
   }[];
+}
+
+export interface SshHostKey {
+  id: number; host: string; port: number; key_type: string; fingerprint: string;
+  first_seen: string | null; last_seen: string | null;
+}
+
+export interface CredentialTestResult {
+  ok: boolean; host: string; method?: string; hostname?: string | null; os?: string | null;
+  vendor?: string | null; note?: string; error_code?: string; message?: string;
 }

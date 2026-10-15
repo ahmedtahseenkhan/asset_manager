@@ -122,9 +122,57 @@ field-level Fernet encryption for all stored secrets.
 | Writes rejected with 403 | license state or role — check License page and the user's role |
 | Emails not arriving | Notifications → Test; check relay host/port/STARTTLS; see the alert log for errors |
 | Audit verify reports broken | investigate DB access; restore from backup |
+| Scanned host shows "failed" | open the run in Scanning → Scan history: each failed host shows the cause and the fix; then use **Test credential** on that host |
 
 Logs are structured JSON on the api container's stdout — ship them to your
 SIEM with your standard collector. No telemetry ever leaves the host.
+
+## 8a. Preparing hosts for credentialed scanning
+
+Credentialed scans (Scanning → targets with WinRM / SSH / SNMP ticked) read
+inventory with accounts you store under **Scanning → Credentials**. Use
+dedicated, least-privilege accounts and assign each credential only to the
+targets it is meant for — a credential is never tried outside its targets, at
+most 3 credentials per method are tried per host per run, and trying stops at
+the first that works, so scans won't lock accounts out. After setting up an
+account, use **Test credential** against one host before scheduling a scan.
+
+**Windows — WinRM (TCP 5985 HTTP / 5986 HTTPS)**
+- Enable WinRM on the hosts: Group Policy *Computer Configuration → Policies →
+  Administrative Templates → Windows Components → Windows Remote Management →
+  WinRM Service → Allow remote server management through WinRM* (restrict the
+  IPv4 filter to this server), set the *Windows Remote Management* service to
+  start automatically, and allow inbound TCP 5985 (or 5986) from this server in
+  Windows Firewall. On a single host: `winrm quickconfig`.
+- Account: a domain account that is a member of the local **Administrators**
+  group on the targets (via Group Policy *Restricted Groups* / *Local Users and
+  Groups*). Full inventory (BitLocker, TPM, all services) needs admin rights.
+- Over HTTP the payload is still encrypted (NTLM/Kerberos message
+  encryption). For HTTPS with a self-signed certificate, set the credential's
+  *Verify TLS certificate* to *no*, or install your CA on this server.
+- Hosts without WinRM: enable it as above, or install the agent instead.
+
+**Linux / macOS / Unix — SSH (TCP 22, or the port set on the credential)**
+- Account with password or key login. `python3` on the host gives full
+  inventory; without it only basic details are collected.
+- Serial numbers, hardware UUID and account lock state need root. Tick *Use
+  sudo* on the credential and allow exactly the agent to run without a password:
+  `scan-account ALL=(root) NOPASSWD: /usr/bin/python3` in `/etc/sudoers.d/itam`.
+- Host keys are trusted the first time a host is scanned. If a host's key later
+  changes, nothing is sent to it and the run says so; after confirming the host
+  was rebuilt, remove its entry under Credentials → *Trusted SSH host keys*.
+
+**Network devices and printers — SNMP (UDP 161)**
+- Read-only access only (the scanner issues GET/WALK, never SET). Prefer
+  SNMPv3 with authPriv (SHA/AES); for v1/v2c use a read-only community.
+- Add this server to the device's SNMP access list. A wrong community and a
+  missing ACL look identical (no response); a wrong SNMPv3 password is reported
+  as a sign-in failure.
+
+**Docker networking.** In the standard install the API container reaches your
+LAN through Docker's NAT: ping, WinRM, SSH and SNMP all work, but ARP-based
+details (MAC addresses of hosts that don't run an agent) and broadcast name
+lookups are not available. Always enter real subnets in scan targets.
 
 ## 9. Upgrades
 

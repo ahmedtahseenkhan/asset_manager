@@ -180,9 +180,12 @@ class Correlator:
         return created, updated
 
     @staticmethod
-    async def upsert_device(db: AsyncSession, source_name: str, raw: RawDeviceRecord) -> Tuple[Device, bool]:
+    async def upsert_device(db: AsyncSession, source_name: str, raw: RawDeviceRecord,
+                            fallback_device_id: int | None = None) -> Tuple[Device, bool]:
         """Merge one raw record into the device table. Flushes, does not commit.
-        Returns (device, created)."""
+        Returns (device, created). `fallback_device_id` is used when nothing
+        matches by identity — e.g. a credentialed scan of an address the sweep
+        already recorded, so the two don't become separate devices."""
         now = datetime.now(timezone.utc)
         unified = Normalizer.normalize(source_name, raw)
         raw_source_uid = raw.get("source_uid")
@@ -193,6 +196,8 @@ class Correlator:
             unified.fqdn, unified.hostname, unified.mac_addresses,
             serial=serial, hw_uuid=hw_uuid,
         )
+        if device is None and fallback_device_id is not None:
+            device = await db.get(Device, fallback_device_id)
 
         created = device is None
         if created:

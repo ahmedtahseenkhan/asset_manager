@@ -3,8 +3,9 @@ Executes scan targets in the background and records each run.
 
 A run: expand the target's addresses → sweep them (ping/ARP + name/port/SNMP
 probes from the network-scan connector) → merge each responsive host through
-the correlator → store a per-host result. Credentialed methods (WinRM, WMI,
-SSH, SNMP with credentials) plug in here in Phase 2.
+the correlator → if the target has credentialed methods and credentials,
+inventory each responsive host over WinRM / SSH / SNMP (scanning.credentialed)
+→ store a per-host result with the outcome.
 
 Runs execute as asyncio tasks inside the API process; their state lives in
 scan_runs, so the UI can follow progress and a restart leaves an honest record.
@@ -14,19 +15,24 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from backend.connectors.network_scan.connector import NetworkScanConnector
 from backend.correlator.correlator import Correlator
+from backend.models.scan_credential import ScanCredential
 from backend.models.scan_run import ScanHostResult, ScanRun
 from backend.models.scan_target import ScanTarget
-from backend.scanning.targets import TargetSpecError, expand
+from backend.scanning.collectors import CredentialInput
+from backend.scanning.credentialed import METHOD_ORDER, HostKeyStore, inventory_host
+from backend.scanning.targets import TargetSpecError, resolve
+from backend.services.inventory_service import InventoryService
 
 logger = logging.getLogger(__name__)
 
 SWEEP_SOURCE = "network_scan"   # devices found by a sweep merge with the connector's
+MAX_PARALLEL_INVENTORY = 16
 
 
 class ScanAlreadyRunning(Exception):
@@ -109,8 +115,7 @@ class ScanRunner:
                 target = await db.get(ScanTarget, target_id)
                 run = await db.get(ScanRun, run_id)
                 try:
-                    addresses = await asyncio.to_thread(
-                        expand, target.target_type, target.value, target.exclusions or "")
+                    addresses = await resolve(db, target.target_type, target.value, target.exclusions or "")
                 except TargetSpecError as exc:
                     await db.rollback()
                     await self._finish(run_id, "failed", str(exc))
@@ -126,23 +131,34 @@ class ScanRunner:
                 }
                 await db.commit()
 
+                # Credentialed collection is heavier than a ping: cap parallel sessions.
+                concurrency = max(1, min(target.concurrency or 16, MAX_PARALLEL_INVENTORY))
+                methods = [m for m in (target.methods or []) if m in METHOD_ORDER]
+                credentials = [CredentialInput.from_model(link.credential) for link in target.credential_links
+                               if link.credential is not None]
+
             records = await NetworkScanConnector().fetch_devices(config)
 
+            hosts = []   # (result id, ip, device id) of every responsive address
             async with self._sessions()() as db:
-                alive = 0
                 for raw in records:
                     device, _ = await Correlator.upsert_device(db, SWEEP_SOURCE, raw)
-                    alive += 1
-                    db.add(ScanHostResult(
+                    result = ScanHostResult(
                         run_id=run_id,
                         ip=(raw.get("ip_addresses") or ["?"])[0],
                         hostname=raw.get("hostname"),
                         status="alive",
                         method="ping",
                         device_id=device.id,
-                    ))
-                await db.execute(update(ScanRun).where(ScanRun.id == run_id).values(hosts_alive=alive))
+                    )
+                    db.add(result)
+                    await db.flush()
+                    hosts.append((result.id, result.ip, device.id))
+                await db.execute(update(ScanRun).where(ScanRun.id == run_id).values(hosts_alive=len(hosts)))
                 await db.commit()
+
+            if methods and credentials and hosts:
+                await self._inventory_hosts(run_id, hosts, methods, credentials, concurrency)
             await self._finish(run_id, "completed")
         except asyncio.CancelledError:
             await self._finish(run_id, "cancelled")
@@ -150,6 +166,53 @@ class ScanRunner:
         except Exception as exc:
             logger.error("Scan run %s failed: %s", run_id, exc, exc_info=True)
             await self._finish(run_id, "failed", str(exc) or type(exc).__name__)
+
+    async def _inventory_hosts(self, run_id: int, hosts: list, methods: List[str],
+                               credentials: List[CredentialInput], concurrency: int) -> None:
+        keys = HostKeyStore(self._sessions())
+        sem = asyncio.Semaphore(concurrency)
+        counts = {"inventoried": 0, "failed": 0}
+
+        async def one(result_id: int, ip: str, device_id: int) -> None:
+            async with sem:
+                async with self._sessions()() as db:
+                    preferred = (await db.execute(
+                        select(ScanHostResult.credential_id)
+                        .where(ScanHostResult.device_id == device_id, ScanHostResult.status == "inventoried",
+                               ScanHostResult.credential_id.isnot(None))
+                        .order_by(ScanHostResult.id.desc()).limit(1)
+                    )).scalar()
+                outcome = await inventory_host(ip, methods, credentials, keys, preferred)
+                if not outcome.attempts:
+                    return            # no applicable method answered: stays a sweep-only result
+                async with self._sessions()() as db:
+                    result = await db.get(ScanHostResult, result_id)
+                    now = _now()
+                    tried = {a.credential_id for a in outcome.attempts}
+                    for cred in (await db.execute(select(ScanCredential).where(ScanCredential.id.in_(tried)))).scalars():
+                        cred.last_used_at = now
+                        if outcome.report is not None and cred.id == outcome.credential_id:
+                            cred.last_success_at = now
+                    result.method, result.credential_id = outcome.method, outcome.credential_id
+                    result.error_code, result.error_message = outcome.error_code, outcome.error_message
+                    result.duration_ms = outcome.duration_ms
+                    if outcome.report is not None:
+                        ingested = await InventoryService.ingest(db, outcome.method, outcome.report,
+                                                                 fallback_device_id=device_id)
+                        result.status = "inventoried"
+                        result.device_id = ingested["device_id"]
+                        result.hostname = ingested["hostname"] or result.hostname
+                        counts["inventoried"] += 1
+                    else:
+                        result.status = "failed"
+                        counts["failed"] += 1
+                    await db.commit()
+
+        await asyncio.gather(*(one(*h) for h in hosts))
+        async with self._sessions()() as db:
+            await db.execute(update(ScanRun).where(ScanRun.id == run_id).values(
+                hosts_inventoried=counts["inventoried"], hosts_failed=counts["failed"]))
+            await db.commit()
 
     async def recover_interrupted(self) -> int:
         """Runs left queued/running by a restart can never finish: close them."""

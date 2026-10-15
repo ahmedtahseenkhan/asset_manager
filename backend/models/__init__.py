@@ -17,12 +17,14 @@ from backend.models.audit_log import AuditLog
 from backend.models.scan_credential import ScanCredential
 from backend.models.scan_target import ScanTarget, ScanTargetCredential
 from backend.models.scan_run import ScanRun, ScanHostResult
+from backend.models.ssh_host_key import SshHostKey
 from backend.models.inventory import (
     DeviceInventory, DevicePatch, DeviceService, DeviceLocalAccount, DeviceAntivirus,
     DeviceVolume, DeviceNetworkAdapter, DeviceMonitor, DevicePrinter, DeviceChange,
 )
 
 __all__ = [
+    "SshHostKey",
     "DeviceInventory", "DevicePatch", "DeviceService", "DeviceLocalAccount", "DeviceAntivirus",
     "DeviceVolume", "DeviceNetworkAdapter", "DeviceMonitor", "DevicePrinter", "DeviceChange",
     "AuditLog",

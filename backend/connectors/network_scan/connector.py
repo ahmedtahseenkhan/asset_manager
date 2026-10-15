@@ -165,6 +165,8 @@ _PORT_HINTS = {
     445:  ("Windows", "workstation/server (SMB)"),
     139:  ("Windows", "workstation/server (NetBIOS)"),
     135:  ("Windows", "workstation/server (RPC)"),
+    5985: ("Windows", "managed host (WinRM)"),
+    5986: ("Windows", "managed host (WinRM over HTTPS)"),
     5357: ("Windows", "workstation (WSD)"),
     62078: ("iOS", "iPhone/iPad"),
     9100: (None, "printer (JetDirect)"),

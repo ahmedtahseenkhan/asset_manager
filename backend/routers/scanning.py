@@ -22,16 +22,19 @@ from backend.models.scan_target import ScanTarget, ScanTargetCredential
 from backend.models.user import User
 from backend.scanning.credentials import CREDENTIAL_TYPES, CredentialError, public_view, validate
 from backend.scanning.runner import ScanAlreadyRunning, scan_runner
-from backend.scanning.targets import TARGET_TYPES, TargetSpecError, expand
+from backend.scanning.collectors import CollectorError, CredentialInput
+from backend.scanning.credentialed import HostKeyStore, test_credential
+from backend.scanning.targets import TARGET_TYPES, TargetSpecError, resolve
+from backend.models.ssh_host_key import SshHostKey
 from backend.schemas.common import APIResponse
 from backend.services.audit_service import AuditService
 from backend.services.scheduler_service import scheduler
 
 router = APIRouter(prefix="/scan", tags=["Scanning"], dependencies=[require_module("discovery_plus")])
 
-# Methods a target can enable. Only the sweep runs today; credentialed methods
-# arrive in Phase 2 and are stored now so targets need no migration later.
-SCAN_METHODS = ("ping", "winrm", "wmi", "ssh", "snmp")
+# Methods a target can enable: the sweep plus credentialed inventory.
+SCAN_METHODS = ("ping", "winrm", "ssh", "snmp")
+_RETIRED_METHODS = {"wmi"}      # planned WMI-over-DCOM was replaced by WinRM
 
 
 # ── Credentials ─────────────────────────────────────────────────────────────
@@ -176,9 +179,9 @@ class TargetUpdate(BaseModel):
     credential_ids: Optional[List[int]] = None
 
 
-async def _expand_or_400(target_type: str, value: str, exclusions: str) -> List[str]:
+async def _expand_or_400(db: AsyncSession, target_type: str, value: str, exclusions: str) -> List[str]:
     try:
-        return await asyncio.to_thread(expand, target_type, value, exclusions)
+        return await resolve(db, target_type, value, exclusions)
     except TargetSpecError as exc:
         raise HTTPException(400, str(exc))
 
@@ -194,6 +197,7 @@ def _check_cron(cron: Optional[str]) -> Optional[str]:
 
 
 def _check_methods(methods: List[str]) -> List[str]:
+    methods = [m for m in methods if m not in _RETIRED_METHODS]
     unknown = set(methods) - set(SCAN_METHODS)
     if unknown:
         raise HTTPException(400, f"Unknown scan method(s): {', '.join(sorted(unknown))}")
@@ -240,9 +244,10 @@ async def _get_target(db: AsyncSession, target_id: int) -> ScanTarget:
 
 
 @router.post("/targets/preview", response_model=APIResponse[Dict[str, Any]])
-async def preview_target(body: TargetSpec, admin: User = Depends(require_admin)):
+async def preview_target(body: TargetSpec, db: AsyncSession = Depends(get_db),
+                         admin: User = Depends(require_admin)):
     """Validate a spec and show what it expands to, before saving."""
-    addrs = await _expand_or_400(body.target_type, body.value, body.exclusions)
+    addrs = await _expand_or_400(db, body.target_type, body.value, body.exclusions)
     return APIResponse(data={"count": len(addrs), "sample": addrs[:10]})
 
 
@@ -257,7 +262,7 @@ async def create_target(body: TargetIn, request: Request,
                         db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     if body.target_type not in TARGET_TYPES:
         raise HTTPException(400, f"target_type must be one of {', '.join(TARGET_TYPES)}")
-    await _expand_or_400(body.target_type, body.value, body.exclusions)
+    await _expand_or_400(db, body.target_type, body.value, body.exclusions)
     target = ScanTarget(
         name=body.name.strip(), enabled=body.enabled, target_type=body.target_type,
         value=body.value.strip(), exclusions=body.exclusions.strip(),
@@ -287,7 +292,7 @@ async def update_target(target_id: int, body: TargetUpdate, request: Request,
         raise HTTPException(400, f"target_type must be one of {', '.join(TARGET_TYPES)}")
     value = body.value if body.value is not None else target.value
     exclusions = body.exclusions if body.exclusions is not None else target.exclusions
-    await _expand_or_400(target_type, value, exclusions or "")
+    await _expand_or_400(db, target_type, value, exclusions or "")
 
     target.target_type, target.value, target.exclusions = target_type, value.strip(), (exclusions or "").strip()
     for field in ("enabled", "concurrency", "timeout_ms", "deep_probe"):
@@ -372,9 +377,11 @@ async def get_run(run_id: int, db: AsyncSession = Depends(get_db), admin: User =
     hosts = (await db.execute(
         select(ScanHostResult).where(ScanHostResult.run_id == run_id).order_by(ScanHostResult.id)
     )).scalars().all()
+    cred_names = dict((await db.execute(select(ScanCredential.id, ScanCredential.name))).all())
     return APIResponse(data={**_run_view(run), "hosts": [
         {"id": h.id, "ip": h.ip, "hostname": h.hostname, "status": h.status, "method": h.method,
-         "credential_id": h.credential_id, "device_id": h.device_id, "error_code": h.error_code,
+         "credential_id": h.credential_id, "credential_name": cred_names.get(h.credential_id),
+         "device_id": h.device_id, "error_code": h.error_code,
          "error_message": h.error_message, "duration_ms": h.duration_ms}
         for h in hosts
     ]})
@@ -389,3 +396,84 @@ async def cancel_run(run_id: int, request: Request,
                            resource_id=str(run_id))
     await db.commit()
     return APIResponse(data=True, message="Cancelling")
+
+
+# ── Credential test ─────────────────────────────────────────────────────────
+class CredentialTestIn(BaseModel):
+    host: str = Field(min_length=1, max_length=255)
+
+
+async def _host_ip(host: str) -> str:
+    import ipaddress
+    import socket
+    try:
+        return str(ipaddress.IPv4Address(host.strip()))
+    except ValueError:
+        try:
+            infos = await asyncio.to_thread(socket.getaddrinfo, host.strip(), None, socket.AF_INET)
+        except socket.gaierror:
+            raise HTTPException(400, f"Cannot resolve {host!r}")
+        return infos[0][4][0]
+
+
+@router.post("/credentials/{cred_id}/test", response_model=APIResponse[Dict[str, Any]])
+async def test_scan_credential(cred_id: int, body: CredentialTestIn, request: Request,
+                               db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Sign in to one host with one credential and run a harmless query.
+
+    Only allowed for hosts inside an enabled scan target this credential is
+    assigned to — the same scope scans use — so it can't be pointed at
+    arbitrary machines."""
+    cred = await _get_credential(db, cred_id)
+    ip = await _host_ip(body.host)
+    targets = (await db.execute(
+        select(ScanTarget).join(ScanTargetCredential, ScanTargetCredential.target_id == ScanTarget.id)
+        .where(ScanTargetCredential.credential_id == cred_id, ScanTarget.enabled == True)  # noqa: E712
+    )).scalars().all()
+    in_scope = False
+    for t in targets:
+        try:
+            if ip in await resolve(db, t.target_type, t.value, t.exclusions or ""):
+                in_scope = True
+                break
+        except TargetSpecError:
+            continue
+    if not in_scope:
+        raise HTTPException(400, f"{ip} is not inside an enabled scan target that uses this credential. "
+                                 "Assign the credential to a target covering this host first.")
+
+    try:
+        info = await test_credential(ip, CredentialInput.from_model(cred), HostKeyStore(scan_runner._sessions()))
+        result = {"ok": True, "host": ip, **info}
+    except CollectorError as exc:
+        result = {"ok": False, "host": ip, "error_code": exc.code, "message": exc.message}
+    await AuditService.log(db, request, admin, "scan.credential_tested", resource_type="scan_credential",
+                           resource_id=str(cred_id), detail={"host": ip, "ok": result["ok"],
+                                                             "error_code": result.get("error_code")})
+    await db.commit()
+    return APIResponse(data=result, message="Credential works" if result["ok"] else "Credential test failed")
+
+
+# ── Trusted SSH host keys ───────────────────────────────────────────────────
+@router.get("/ssh-host-keys", response_model=APIResponse[List[Dict[str, Any]]])
+async def list_ssh_host_keys(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    rows = (await db.execute(select(SshHostKey).order_by(SshHostKey.host, SshHostKey.port))).scalars().all()
+    return APIResponse(data=[{"id": k.id, "host": k.host, "port": k.port, "key_type": k.key_type,
+                              "fingerprint": k.fingerprint, "first_seen": k.first_seen,
+                              "last_seen": k.last_seen} for k in rows])
+
+
+@router.delete("/ssh-host-keys/{key_id}", response_model=APIResponse[bool])
+async def forget_ssh_host_key(key_id: int, request: Request,
+                              db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Forget a trusted key (e.g. the host was rebuilt). The next scan trusts
+    whatever key the host then presents."""
+    key = await db.get(SshHostKey, key_id)
+    if key is None:
+        raise HTTPException(404, "Host key not found")
+    await db.delete(key)
+    await AuditService.log(db, request, admin, "scan.ssh_host_key_forgotten", resource_type="ssh_host_key",
+                           resource_id=str(key_id),
+                           detail={"host": key.host, "port": key.port, "fingerprint": key.fingerprint})
+    await db.commit()
+    return APIResponse(data=True, message="Host key forgotten")

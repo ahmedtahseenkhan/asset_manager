@@ -189,31 +189,47 @@ Remember the working credential per device to skip failed attempts next time.
 | Port(s) found | Method | Library |
 |---|---|---|
 | 5985/5986 | **WinRM** — run the Phase 1 PowerShell collector remotely | `pypsrp` |
-| 135 + 445 | **WMI over DCOM** — query the same WMI classes | `impacket` |
-| 22 | **SSH** — pipe `itam_agent.py --stdout` to `python3 -`; shell fallback if no Python | `asyncssh` |
-| 161/udp | **SNMP v1/v2c/v3** — sysDescr/ObjectID, ENTITY-MIB serial/model, IF-MIB, Printer-MIB (toner) | `pysnmp` |
+| 22 | **SSH** — pipe `itam_agent.py --dry-run` to `python3 -`; shell fallback if no Python | `asyncssh` |
+| 161/udp | **SNMP v1/v2c/v3** — sysDescr/ObjectID, ENTITY-MIB serial/model, IF-MIB, Printer-MIB serial | `pysnmp` |
 
-- [ ] 2.1 Scan orchestrator: per-target job, bounded concurrency, per-host
-      timeout, cancel, progress stored in `scan_runs`.
-- [ ] 2.2 WinRM collector (servers usually have WinRM on by default).
-- [ ] 2.3 WMI/DCOM collector (workstations usually don't have WinRM) — same
-      output shape as 2.2.
-- [ ] 2.4 SSH collector for Linux, macOS, and generic Unix; key and password auth.
-- [ ] 2.5 SNMP collector replacing the current public-community-only probe;
-      v3 auth/priv support; vendor lookup from sysObjectID (bundled enterprise-number table).
-- [ ] 2.6 AD-driven targets: scan the computers listed in AD (reuse AD connector).
-- [ ] 2.7 Scan errors UI with plain-language causes ("Access denied — account is
-      not a local admin", "RPC server unavailable — firewall blocks 135") and
-      fix hints, like Lansweeper's troubleshooting view.
-- [ ] 2.9 "Test credential" action: try a credential against one host and
-      report the exact failure (moved from 0.5).
-- [ ] 2.8 Admin guide: least-privilege accounts per method, firewall ports,
-      Group Policy to enable WinRM, and host-networking requirement for Docker
-      (a bridge-networked container cannot sweep the real LAN).
+**Change from the original plan:** WMI over DCOM (via `impacket`) was dropped.
+`impacket` is an offensive-security toolkit; shipping it in a customer-installed
+product is a poor trade. Windows hosts are inventoried over WinRM, Microsoft's
+supported remote-management protocol; hosts without WinRM get it via Group
+Policy or run the agent. Printer toner levels were not added (serial only).
+
+**Credential rules** (account-lockout safe): only credentials assigned to the
+target, only against its addresses; at most 3 per method per host per run;
+the last working credential first; stop at the first success. SSH host keys
+are trusted on first use and checked *before* authenticating, so credentials
+are never sent to a host whose key changed.
+
+- [x] 2.1 Scan orchestrator: credentialed step after the sweep, bounded
+      concurrency (max 16 sessions), per-host timeouts, results per host.
+- [x] 2.2 WinRM collector — HTTPS 5986 when open, else HTTP 5985 with
+      NTLM/Kerberos message encryption. **Not yet run against a real Windows host.**
+- [x] ~~2.3 WMI/DCOM collector~~ — replaced by WinRM (see above).
+- [x] 2.4 SSH collector (password or key, optional `sudo -n` for python3,
+      basic report when python3 is missing). Verified against a real sshd.
+- [x] 2.5 SNMP collector, v1/v2c/v3 with auth/priv, vendor from sysObjectID.
+      Verified against a real snmpd (v2c and v3 AES).
+- [x] 2.6 AD-driven targets: target type "Active Directory computers" (an OU
+      or the connector's whole search base), resolved via DNS.
+- [x] 2.7 Failed hosts show a code, a plain-language cause and the fix.
+- [x] 2.9 "Test credential" — limited to hosts inside an enabled target that
+      uses the credential.
+- [x] 2.8 Admin guide: host preparation per method, ports, least privilege, Docker networking.
 
 **Done when:** a Windows host with no agent shows the same tabs as an agent
 host after a scan; a Linux host via SSH and a switch/printer via SNMPv3 also
 populate; failed hosts show an actionable error.
+
+*Status:* done for SSH and SNMP, verified end to end (scan → inventory →
+device tabs) against real services in containers. WinRM is covered by unit
+tests with a mocked client only; first use on a real Windows network should
+start with **Test credential** on one host. Dependency note: `cryptography`
+moved 42.0.5 → 50.0.2 (pysnmp needs ≥ 47 for SNMPv3 privacy; also fixes the
+bundled-OpenSSL CVE-2024-12797).
 
 ---
 

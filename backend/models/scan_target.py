@@ -43,4 +43,6 @@ class ScanTargetCredential(Base):
     credential_id = Column(Integer, ForeignKey("scan_credentials.id", ondelete="CASCADE"), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
 
+    credential = relationship("ScanCredential", lazy="selectin")
+
     __table_args__ = (UniqueConstraint("target_id", "credential_id", name="uq_target_credential"),)

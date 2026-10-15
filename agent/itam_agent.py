@@ -352,7 +352,8 @@ def _linux_software() -> list:
 
 
 def _linux_services() -> list | None:
-    if not _have("systemctl"):
+    # systemctl can be installed without systemd running (containers): unknown, not "none".
+    if not _have("systemctl") or not os.path.isdir("/run/systemd/system"):
         return None
     modes = dict(l.split()[:2] for l in _run(["systemctl", "list-unit-files", "--type=service", "--no-legend",
                                               "--no-pager"]).splitlines() if len(l.split()) >= 2)

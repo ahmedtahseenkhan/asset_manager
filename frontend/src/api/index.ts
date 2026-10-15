@@ -5,7 +5,7 @@ import type {
   Contract, ContractDetail, ContractListOut, EntitlementDetail, EntitlementListOut,
   SmtpSettingsOut, AlertRule, NotificationLogEntry,
   CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
-  DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet,
+  DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet, SshHostKey, CredentialTestResult,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -212,6 +212,12 @@ export const updateScanCredential = (id: number, body: unknown) =>
   apiClient.patch<never, APIResponse<ScanCredential>>(`/scan/credentials/${id}`, body);
 export const deleteScanCredential = (id: number) =>
   apiClient.delete<never, APIResponse<boolean>>(`/scan/credentials/${id}`);
+export const testScanCredential = (id: number, host: string) =>
+  apiClient.post<never, APIResponse<CredentialTestResult>>(`/scan/credentials/${id}/test`, { host });
+export const getSshHostKeys = () =>
+  apiClient.get<never, APIResponse<SshHostKey[]>>('/scan/ssh-host-keys');
+export const forgetSshHostKey = (id: number) =>
+  apiClient.delete<never, APIResponse<boolean>>(`/scan/ssh-host-keys/${id}`);
 
 export const getScanTargets = () =>
   apiClient.get<never, APIResponse<ScanTarget[]>>('/scan/targets');

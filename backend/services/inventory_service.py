@@ -450,10 +450,12 @@ def _raw_record(source: str, report: InventoryReport, now: datetime) -> RawDevic
 # ── entry point ─────────────────────────────────────────────────────────────
 class InventoryService:
     @staticmethod
-    async def ingest(db: AsyncSession, source: str, report: InventoryReport) -> Dict[str, Any]:
+    async def ingest(db: AsyncSession, source: str, report: InventoryReport,
+                     fallback_device_id: Optional[int] = None) -> Dict[str, Any]:
         """Ingest one report. Flushes; the caller commits."""
         now = datetime.now(timezone.utc)
-        device, created = await Correlator.upsert_device(db, source, _raw_record(source, report, now))
+        device, created = await Correlator.upsert_device(
+            db, source, _raw_record(source, report, now), fallback_device_id=fallback_device_id)
 
         inv = (await db.execute(
             select(DeviceInventory).where(DeviceInventory.device_id == device.id)

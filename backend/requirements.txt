@@ -14,5 +14,9 @@ alembic==1.13.0
 python-dotenv==1.0.1
 openpyxl==3.1.5
 python-multipart==0.0.12
-cryptography==42.0.5
+cryptography==50.0.2   # >=47 needed by pysnmp SNMPv3 privacy; includes OpenSSL fixes (CVE-2024-12797)
 tenacity==8.2.3
+# Credentialed scanning (Phase 2)
+pypsrp==0.9.1
+asyncssh==2.24.1
+pysnmp==7.1.30

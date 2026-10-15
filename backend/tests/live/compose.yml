@@ -1,0 +1,32 @@
+# Real services for tests/test_collectors_live.py (developer machines only).
+#
+#   docker compose -f backend/tests/live/compose.yml up -d --build
+#   cd backend && ITAM_LIVE_TESTS=1 ./.venv/bin/python -m pytest tests/test_collectors_live.py
+#   docker compose -f backend/tests/live/compose.yml down
+#
+# Test-only passwords; bound to 127.0.0.1 so nothing is exposed to the network.
+services:
+  sshd:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:24.04
+        RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssh-server python3 sudo iproute2 >/dev/null \
+         && rm -rf /var/lib/apt/lists/* && mkdir -p /run/sshd \
+         && useradd -m -s /bin/bash scan && echo 'scan:Scan-Pass-123' | chpasswd \
+         && echo 'scan ALL=(root) NOPASSWD: /usr/bin/python3' > /etc/sudoers.d/scan && chmod 440 /etc/sudoers.d/scan
+        CMD ["/usr/sbin/sshd", "-D", "-e"]
+    hostname: lab-linux-01
+    ports:
+      - "127.0.0.1:2222:22"
+
+  snmpd:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:24.04
+        RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq snmpd >/dev/null && rm -rf /var/lib/apt/lists/*
+        RUN printf 'agentAddress udp:161\nrocommunity labro default\nsysName lab-switch-01.corp.local\nsysDescr Lab test agent (Net-SNMP on Ubuntu)\ncreateUser v3user SHA "authpass123" AES "privpass123"\nrouser v3user priv\n' > /etc/snmp/snmpd.conf
+        CMD ["snmpd", "-f", "-Lo", "-C", "-c", "/etc/snmp/snmpd.conf"]
+    ports:
+      - "127.0.0.1:1161:161/udp"

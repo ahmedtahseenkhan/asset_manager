@@ -5,10 +5,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getScanTargets, createScanTarget, updateScanTarget, deleteScanTarget, runScanTarget, previewScanTarget,
   getScanCredentials, getCredentialTypes, createScanCredential, updateScanCredential, deleteScanCredential,
-  getScanRuns, getScanRun, cancelScanRun,
+  getScanRuns, getScanRun, cancelScanRun, testScanCredential, getSshHostKeys, forgetSshHostKey,
 } from '../api';
 import type { ScanTarget, ScanCredential, ScanRun, ScanRunStatus, CredentialTypeSpec } from '../types';
-import { ScanSearch, Plus, Play, Pencil, Trash2, KeyRound, History, Target, X, Square, Lock } from 'lucide-react';
+import {
+  ScanSearch, Plus, Play, Pencil, Trash2, KeyRound, History, Target, X, Square, Lock, PlugZap, CheckCircle2, XCircle,
+} from 'lucide-react';
 import { format, formatDistanceStrict } from 'date-fns';
 import clsx from 'clsx';
 
@@ -25,9 +27,11 @@ const SCHEDULES = [
   { label: 'Weekly (Sun 03:00)', cron: '0 3 * * 0' },
 ];
 const CREDENTIALED_METHODS = [
-  { id: 'winrm', label: 'WinRM' }, { id: 'wmi', label: 'WMI' },
-  { id: 'ssh', label: 'SSH' }, { id: 'snmp', label: 'SNMP' },
+  { id: 'winrm', label: 'WinRM', hint: 'Windows' },
+  { id: 'ssh', label: 'SSH', hint: 'Linux, macOS, Unix' },
+  { id: 'snmp', label: 'SNMP', hint: 'switches, routers, printers' },
 ];
+const KNOWN_METHODS = new Set(['ping', ...CREDENTIALED_METHODS.map((m) => m.id)]);
 const SECRET_LABELS: Record<string, string> = {
   password: 'Password', private_key: 'Private key (PEM)', passphrase: 'Key passphrase',
   community: 'Community string', auth_password: 'Auth password', priv_password: 'Privacy password',
@@ -35,6 +39,7 @@ const SECRET_LABELS: Record<string, string> = {
 const PARAM_LABELS: Record<string, string> = {
   port: 'Port', version: 'Version', security_level: 'Security level',
   auth_protocol: 'Auth protocol', priv_protocol: 'Privacy protocol',
+  transport: 'WinRM transport', verify_tls: 'Verify TLS certificate', sudo: 'Use sudo (needs NOPASSWD for python3)',
 };
 
 function errorText(err: unknown): string {
@@ -101,13 +106,15 @@ const VALUE_HINTS: Record<ScanTarget['target_type'], string> = {
   cidr: '192.168.1.0/24  (several allowed, comma or newline separated)',
   range: '10.0.0.10-10.0.0.50  or  10.0.0.10-50',
   hosts: 'srv01, srv02.corp.local, 10.0.0.7',
+  ad: 'OU=Workstations,DC=corp,DC=local  or  * for the whole directory',
 };
 
 function TargetModal({ target, credentials, onClose }: { target: ScanTarget | null; credentials: ScanCredential[]; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<TargetForm>(() => target ? {
     name: target.name, enabled: target.enabled, target_type: target.target_type, value: target.value,
-    exclusions: target.exclusions, schedule_cron: target.schedule_cron ?? '', methods: target.methods,
+    exclusions: target.exclusions, schedule_cron: target.schedule_cron ?? '',
+    methods: target.methods.filter((m) => KNOWN_METHODS.has(m)),   // drops the retired "wmi"
     credential_ids: target.credential_ids, concurrency: target.concurrency,
     timeout_ms: target.timeout_ms, deep_probe: target.deep_probe,
   } : EMPTY_TARGET);
@@ -163,6 +170,7 @@ function TargetModal({ target, credentials, onClose }: { target: ScanTarget | nu
               <option value="cidr">Subnet (CIDR)</option>
               <option value="range">IP range</option>
               <option value="hosts">Host list</option>
+              <option value="ad">Active Directory computers</option>
             </select>
           </div>
           <div className="col-span-2">
@@ -210,16 +218,16 @@ function TargetModal({ target, credentials, onClose }: { target: ScanTarget | nu
           <div>
             <p className="text-sm text-slate-200 font-medium">Credentialed scanning</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Saved with the target now; scans start using these when credentialed scanning (WinRM, WMI, SSH, SNMP) is released.
-              Until then every run is a network sweep.
+              After the network sweep, each responding host is inventoried with the methods ticked here, using only the
+              credentials below — at most 3 per method per host, stopping at the first that works.
             </p>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {CREDENTIALED_METHODS.map((m) => (
               <label key={m.id} className="inline-flex items-center gap-2 text-sm text-slate-300">
                 <input type="checkbox" checked={form.methods.includes(m.id)} onChange={() => toggleMethod(m.id)}
                   className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-500" />
-                {m.label}
+                {m.label} <span className="text-xs text-slate-500">{m.hint}</span>
               </label>
             ))}
           </div>
@@ -470,9 +478,95 @@ function CredentialModal({ cred, types, onClose }: { cred: ScanCredential | null
   );
 }
 
+function TestCredentialModal({ cred, onClose }: { cred: ScanCredential; onClose: () => void }) {
+  const [host, setHost] = useState('');
+  const [error, setError] = useState('');
+  const test = useMutation({
+    mutationFn: () => testScanCredential(cred.id, host.trim()),
+    onSuccess: () => setError(''),
+    onError: (e) => setError(errorText(e)),
+  });
+  const result = test.data?.data;
+  return (
+    <Modal title={`Test ${cred.name}`} onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-slate-400">
+          Signs in to one host and runs a harmless query; nothing is stored. The host must be inside a scan target
+          that uses this credential.
+        </p>
+        <div className="flex gap-3">
+          <input className={clsx(INPUT, 'font-mono')} value={host} onChange={(e) => setHost(e.target.value)}
+            placeholder="10.0.0.25 or server01.corp.local" autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && host.trim() && test.mutate()} />
+          <button className={BTN_PRIMARY} disabled={!host.trim() || test.isPending} onClick={() => test.mutate()}>
+            {test.isPending ? 'Testing…' : 'Test'}
+          </button>
+        </div>
+        {error && <p className="text-sm text-rose-400">{error}</p>}
+        {result && (result.ok ? (
+          <div className="rounded-lg p-3 bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/30 text-sm">
+            <p className="text-emerald-400 font-medium flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Signed in over {result.method?.toUpperCase()}</p>
+            <p className="text-slate-300 mt-1">{[result.hostname, result.os, result.vendor].filter(Boolean).join(' · ')}</p>
+            {result.note && <p className="text-yellow-400 mt-1">{result.note}</p>}
+          </div>
+        ) : (
+          <div className="rounded-lg p-3 bg-rose-500/10 ring-1 ring-inset ring-rose-500/30 text-sm">
+            <p className="text-rose-400 font-medium flex items-center gap-2"><XCircle className="w-4 h-4" /> {result.host}</p>
+            <p className="text-slate-300 mt-1">{result.message}</p>
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function HostKeysCard() {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({ queryKey: ['ssh-host-keys'], queryFn: getSshHostKeys });
+  const keys = data?.data ?? [];
+  const forget = useMutation({
+    mutationFn: (id: number) => forgetSshHostKey(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ssh-host-keys'] }),
+  });
+  return (
+    <Card>
+      <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1">Trusted SSH host keys</h2>
+      <p className="text-xs text-slate-500 mb-3">
+        Remembered the first time each host is scanned. If a host later shows a different key, no credentials are sent to it.
+        Forget a key only after confirming the host was rebuilt or re-keyed.
+      </p>
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">
+            <th className="py-2">Host</th><th className="py-2">Key</th><th className="py-2">Fingerprint</th><th className="py-2">First seen</th><th />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-700/50">
+          {keys.map((k) => (
+            <tr key={k.id}>
+              <td className="py-2 text-sm text-slate-200 font-mono">{k.host}{k.port !== 22 ? `:${k.port}` : ''}</td>
+              <td className="py-2 text-sm text-slate-400">{k.key_type}</td>
+              <td className="py-2 text-xs text-slate-400 font-mono">{k.fingerprint}</td>
+              <td className="py-2 text-sm text-slate-500">{k.first_seen ? format(new Date(k.first_seen), 'PP') : '—'}</td>
+              <td className="py-2 text-right">
+                <button className={clsx(BTN_GHOST, 'py-1 px-2 text-xs')} disabled={forget.isPending}
+                  onClick={() => window.confirm(`Forget the trusted key for ${k.host}? The next scan will trust whatever key it presents.`) && forget.mutate(k.id)}>
+                  Forget
+                </button>
+              </td>
+            </tr>
+          ))}
+          {keys.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-500 text-sm">No SSH hosts scanned yet.</td></tr>}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
 function CredentialsTab() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ cred: ScanCredential | null } | null>(null);
+  const [testing, setTesting] = useState<ScanCredential | null>(null);
   const [error, setError] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['scan-credentials'], queryFn: getScanCredentials });
   const { data: typesRes } = useQuery({ queryKey: ['credential-types'], queryFn: getCredentialTypes, staleTime: Infinity });
@@ -519,6 +613,9 @@ function CredentialsTab() {
               <td className="py-2.5 text-sm text-slate-400">{c.target_count ? `${c.target_count} target${c.target_count === 1 ? '' : 's'}` : '—'}</td>
               <td className="py-2.5 text-sm text-slate-500">{format(new Date(c.updated_at), 'PP')}</td>
               <td className="py-2.5 text-right whitespace-nowrap">
+                {c.cred_type !== 'vmware' && (
+                  <button className={ICON_BTN} title="Test against a host" onClick={() => setTesting(c)}><PlugZap className="w-4 h-4" /></button>
+                )}
                 <button className={ICON_BTN} title="Edit" onClick={() => setModal({ cred: c })}><Pencil className="w-4 h-4" /></button>
                 <button className={ICON_BTN} title="Delete"
                   onClick={() => window.confirm(
@@ -535,6 +632,7 @@ function CredentialsTab() {
         </tbody>
       </table>
       {modal && <CredentialModal cred={modal.cred} types={types} onClose={() => setModal(null)} />}
+      {testing && <TestCredentialModal cred={testing} onClose={() => setTesting(null)} />}
     </Card>
   );
 }
@@ -567,6 +665,12 @@ function RunModal({ runId, onClose }: { runId: number; onClose: () => void }) {
             <span className="text-slate-400">Started <span className="text-slate-200">{run.started_at ? format(new Date(run.started_at), 'PP p') : '—'}</span></span>
             <span className="text-slate-400">Duration <span className="text-slate-200">{duration(run)}</span></span>
             <span className="text-slate-400">Responding <span className="text-slate-200">{run.hosts_alive}</span> of {run.hosts_total}</span>
+            {(run.hosts_inventoried > 0 || run.hosts_failed > 0) && (
+              <span className="text-slate-400">
+                Inventoried <span className="text-emerald-400">{run.hosts_inventoried}</span>
+                {run.hosts_failed > 0 && <> · failed <span className="text-rose-400">{run.hosts_failed}</span></>}
+              </span>
+            )}
             <span className="text-slate-400 capitalize">{run.trigger}</span>
             {active && (
               <button className={clsx(BTN_GHOST, 'ml-auto')} disabled={cancel.isPending} onClick={() => cancel.mutate()}>
@@ -580,19 +684,30 @@ function RunModal({ runId, onClose }: { runId: number; onClose: () => void }) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">
-                  <th className="py-2">IP</th><th className="py-2">Hostname</th><th className="py-2">Result</th><th className="py-2">Method</th><th className="py-2">Device</th>
+                  <th className="py-2">IP</th><th className="py-2">Hostname</th><th className="py-2">Result</th><th className="py-2">Method · credential</th><th className="py-2">Device</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
                 {run.hosts.map((h) => (
-                  <tr key={h.id}>
+                  <tr key={h.id} className="align-top">
                     <td className="py-2 text-sm text-slate-200 font-mono">{h.ip}</td>
                     <td className="py-2 text-sm text-slate-300">{h.hostname ?? <span className="text-slate-500">unknown</span>}</td>
-                    <td className="py-2 text-sm">
-                      <span className={clsx(h.status === 'failed' ? 'text-rose-400' : 'text-emerald-400')}>{h.status}</span>
-                      {h.error_message && <span className="block text-xs text-slate-500">{h.error_message}</span>}
+                    <td className="py-2 text-sm max-w-md">
+                      <span className={clsx(
+                        h.status === 'failed' ? 'text-rose-400' : h.status === 'inventoried' ? 'text-emerald-400' : 'text-slate-400')}>
+                        {h.status === 'alive' ? 'responding (sweep only)' : h.status}
+                      </span>
+                      {h.error_message && (
+                        <span className={clsx('block text-xs mt-0.5', h.status === 'failed' ? 'text-slate-400' : 'text-yellow-400')}>
+                          {h.error_message}
+                          {h.error_code === 'host_key_changed' && ' Trusted keys are listed on the Credentials tab.'}
+                        </span>
+                      )}
                     </td>
-                    <td className="py-2 text-sm text-slate-400">{h.method ?? '—'}</td>
+                    <td className="py-2 text-sm text-slate-400">
+                      {h.method === 'ping' ? 'sweep' : h.method?.toUpperCase() ?? '—'}
+                      {h.credential_name && <span className="block text-xs text-slate-500">{h.credential_name}</span>}
+                    </td>
                     <td className="py-2 text-sm">
                       {h.device_id ? <Link to={`/devices/${h.device_id}`} className="text-indigo-400 hover:text-indigo-300">View</Link> : '—'}
                     </td>
@@ -632,7 +747,14 @@ function HistoryTab({ onOpenRun }: { onOpenRun: (id: number) => void }) {
               <td className="py-2.5"><StatusBadge status={r.status} /></td>
               <td className="py-2.5 text-sm text-slate-400">{format(new Date(r.started_at ?? r.created_at), 'PP p')}</td>
               <td className="py-2.5 text-sm text-slate-400">{duration(r)}</td>
-              <td className="py-2.5 text-sm text-slate-300">{r.status === 'completed' ? `${r.hosts_alive} / ${r.hosts_total}` : '—'}</td>
+              <td className="py-2.5 text-sm text-slate-300">
+                {r.status === 'completed' ? `${r.hosts_alive} / ${r.hosts_total}` : '—'}
+                {(r.hosts_inventoried > 0 || r.hosts_failed > 0) && (
+                  <span className="block text-xs text-slate-500">
+                    {r.hosts_inventoried} inventoried{r.hosts_failed > 0 && <span className="text-rose-400"> · {r.hosts_failed} failed</span>}
+                  </span>
+                )}
+              </td>
               <td className="py-2.5 text-sm text-slate-500 capitalize">{r.trigger}</td>
             </tr>
           ))}
@@ -676,7 +798,7 @@ export default function Scanning() {
       </div>
 
       {tab === 'targets' && <TargetsTab onOpenRun={setOpenRun} />}
-      {tab === 'credentials' && <CredentialsTab />}
+      {tab === 'credentials' && <><CredentialsTab /><HostKeysCard /></>}
       {tab === 'history' && <HistoryTab onOpenRun={setOpenRun} />}
 
       {openRun !== null && <RunModal runId={openRun} onClose={() => setOpenRun(null)} />}

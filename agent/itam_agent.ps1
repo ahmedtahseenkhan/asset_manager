@@ -283,8 +283,10 @@ $report = [ordered]@{
 $json = $report | ConvertTo-Json -Depth 6 -Compress
 
 if ($DryRun) {
+    # return, not exit: credentialed scans run this script in a remote session
+    # and read its output, which exit would cut short.
     $report | ConvertTo-Json -Depth 6
-    exit 0
+    return
 }
 if (-not $Server -or -not $Token) {
     Write-Error 'Server and Token are required (or set ITAM_SERVER / ITAM_TOKEN).'

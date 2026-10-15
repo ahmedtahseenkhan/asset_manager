@@ -13,22 +13,23 @@ from typing import Any, Dict, Tuple
 # type -> (label, required secrets, optional secrets, params with allowed values or None for free text)
 CREDENTIAL_TYPES: Dict[str, dict] = {
     "windows": {
-        "label": "Windows (WinRM / WMI)",
+        "label": "Windows (WinRM)",
         "username": "required",           # DOMAIN\\user or user@domain
         "secrets": {"password": True},
-        "params": {},
+        # auto: HTTPS (5986) when open, else HTTP (5985) with NTLM/Kerberos message encryption
+        "params": {"transport": ("auto", "https", "http"), "verify_tls": ("yes", "no")},
     },
     "ssh_password": {
         "label": "SSH (password)",
         "username": "required",
         "secrets": {"password": True},
-        "params": {"port": None},
+        "params": {"port": None, "sudo": ("no", "yes")},   # sudo -n: needs NOPASSWD for python3
     },
     "ssh_key": {
         "label": "SSH (private key)",
         "username": "required",
         "secrets": {"private_key": True, "passphrase": False},
-        "params": {"port": None},
+        "params": {"port": None, "sudo": ("no", "yes")},
     },
     "snmp_v2c": {
         "label": "SNMP v1/v2c",
