@@ -40,3 +40,4 @@ class DeviceFilter(BaseModel):
     search: Optional[str] = None
     os_name: Optional[str] = None
     status: Optional[str] = None
+    health: Optional[str] = None    # a key of services.endpoint_health.HEALTH_LABELS

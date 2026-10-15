@@ -122,6 +122,13 @@ class DeviceService:
                 query = query.where(Device.os_name.ilike(f"%{filter_params.os_name}%"))
             if filter_params.status:
                 query = query.where(Device.status == filter_params.status)
+            if filter_params.health:
+                from backend.models.inventory import DeviceInventory
+                from backend.services.endpoint_health import health_conditions
+                cond = health_conditions().get(filter_params.health)
+                if cond is None:
+                    raise ValueError(f"Unknown health filter {filter_params.health!r}")
+                query = query.join(DeviceInventory, DeviceInventory.device_id == Device.id).where(cond)
                 
         # Total count
         count_query = select(func.count()).select_from(query.subquery())

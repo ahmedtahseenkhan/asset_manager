@@ -1,7 +1,9 @@
 import secrets
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +14,12 @@ from backend.models.agent import AgentToken
 from backend.models.software import InstalledSoftware
 from backend.models.user import User
 from backend.schemas.common import APIResponse
-from backend.services.agent_service import AgentService, parse_agent_report
+from backend.models.device import Device
+from backend.models.device_source import DeviceSource
+from backend.models.inventory import DeviceInventory
+from backend.services.agent_service import (
+    AGENT_SOURCE, LATEST_AGENT_VERSION, AgentService, is_outdated, parse_agent_report,
+)
 from backend.services.audit_service import AuditService
 
 router = APIRouter(tags=["Agents"])
@@ -104,3 +111,37 @@ async def device_software(
          "version": s.version, "publisher": s.publisher}
         for s in rows
     ])
+
+
+# ── Fleet view (admin) ────────────────────────────────────────────────────
+@router.get("/agents/fleet", response_model=APIResponse[Dict[str, Any]])
+async def agent_fleet(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    rows = (await db.execute(
+        select(Device, DeviceSource.last_synced, DeviceInventory.collector_version, DeviceInventory.os_name)
+        .join(DeviceSource, (DeviceSource.device_id == Device.id) & (DeviceSource.source_name == AGENT_SOURCE))
+        .outerjoin(DeviceInventory, DeviceInventory.device_id == Device.id)
+        .order_by(DeviceSource.last_synced.desc())
+    )).all()
+    return APIResponse(data={
+        "latest_version": LATEST_AGENT_VERSION,
+        "agents": [{
+            "device_id": d.id, "hostname": d.hostname, "status": d.status,
+            "os_name": os_name or d.os_name, "version": version, "outdated": is_outdated(version),
+            "last_report": last,
+        } for d, last, version, os_name in rows],
+    })
+
+
+# ── Agent script downloads (unauthenticated: endpoints fetch these while
+#    installing; the scripts hold no secrets) ──────────────────────────────
+_AGENT_DIR = Path(__file__).resolve().parents[2] / "agent"
+_DOWNLOADS = {"itam_agent.ps1", "itam_agent.py", "install_agent.ps1", "install_agent.sh"}
+
+
+@router.get("/agents/download/{filename}", response_class=PlainTextResponse)
+async def download_agent_file(filename: str):
+    path = _AGENT_DIR / filename
+    if filename not in _DOWNLOADS or not path.is_file():
+        raise HTTPException(404, "No such agent file")
+    return PlainTextResponse(path.read_text(encoding="utf-8"),
+                             headers={"Content-Disposition": f'attachment; filename="{filename}"'})

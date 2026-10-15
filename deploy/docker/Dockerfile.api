@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 # Application code (the vendor license-signer tool is NOT copied — customer
 # installations must never contain the private signing key or tooling)
 COPY backend /app/backend
+# Agent scripts, served to endpoints by /api/agents/download/*
+COPY agent /app/agent
 
 # Non-root runtime user
 RUN useradd --create-home --uid 10001 itam \

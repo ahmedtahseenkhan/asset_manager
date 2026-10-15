@@ -16,11 +16,15 @@ async def list_devices(
     search: str = None,
     os_name: str = None,
     device_status: str = None, # renamed internally to avoid shadowed names
+    health: str = None,        # endpoint-health filter, e.g. no_antivirus
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    f = DeviceFilter(search=search, os_name=os_name, status=device_status)
-    total, devices = await DeviceService.get_devices(db, page, size, f)
+    f = DeviceFilter(search=search, os_name=os_name, status=device_status, health=health)
+    try:
+        total, devices = await DeviceService.get_devices(db, page, size, f)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     
     return APIResponse(data=DeviceListOut(
         items=devices,

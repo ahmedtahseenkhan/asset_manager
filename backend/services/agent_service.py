@@ -14,6 +14,20 @@ from backend.services.inventory_service import InventoryService
 
 AGENT_SOURCE = "agent"
 
+# Version shipped in agent/; reports from older agents are flagged as outdated.
+LATEST_AGENT_VERSION = "2.0.0"
+
+
+def _version_tuple(v: Optional[str]) -> tuple:
+    try:
+        return tuple(int(x) for x in (v or "").split("."))
+    except ValueError:
+        return (0,)      # "v1" and other pre-versioning agents
+
+
+def is_outdated(version: Optional[str]) -> bool:
+    return _version_tuple(version) < _version_tuple(LATEST_AGENT_VERSION)
+
 
 def parse_agent_report(payload: Dict[str, Any]) -> InventoryReport:
     """v2+ payloads carry schema_version; anything else is the v1 flat format.

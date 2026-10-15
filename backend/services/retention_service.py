@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _RETIRE_DAYS = 90
 _PURGE_DAYS  = 365
+_CHANGE_HISTORY_DAYS = 365   # device_changes older than this are deleted
 
 
 class RetentionService:
@@ -58,11 +59,19 @@ class RetentionService:
             await db.delete(device)
             purged_count += 1
 
+        # Stage 3: change history older than a year
+        from sqlalchemy import delete
+        from backend.models.inventory import DeviceChange
+        history = await db.execute(
+            delete(DeviceChange).where(DeviceChange.detected_at < now - timedelta(days=_CHANGE_HISTORY_DAYS))
+        )
+
         await db.commit()
 
         summary = {
             "retired": retired_count,
             "purged":  purged_count,
+            "changes_pruned": history.rowcount or 0,
             "retire_after_days": retire_after_days,
             "purge_after_days":  purge_after_days,
             "ran_at": now.isoformat(),

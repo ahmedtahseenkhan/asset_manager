@@ -9,11 +9,12 @@ import { BellRing, Send, Play, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 
-const RULE_LABELS: Record<string, { title: string; hint: string }> = {
+const RULE_LABELS: Record<string, { title: string; hint: string; noThreshold?: boolean }> = {
   contract_expiry:    { title: 'Contract renewals',   hint: 'Uses each contract\'s own notice window' },
   warranty_expiry:    { title: 'Asset warranties',    hint: 'Assets whose warranty ends within the threshold' },
   entitlement_expiry: { title: 'Software licenses',   hint: 'Entitlements expiring within the threshold' },
   license_expiry:     { title: 'Application license', hint: 'This product\'s own license file' },
+  security_changes:   { title: 'Risky device changes', hint: 'New local admins, antivirus, firewall or encryption turned off — since the last email', noThreshold: true },
 };
 
 interface SmtpForm {
@@ -211,13 +212,17 @@ export default function Notifications() {
                     <span className="text-xs text-slate-500">{meta?.hint}</span>
                   </span>
                 </label>
-                <label className="text-sm text-slate-400 flex items-center gap-2 shrink-0">
-                  within
-                  <input type="number" min="1" max="365" value={d.days_before}
-                    onChange={(e) => setRuleDrafts({ ...ruleDrafts, [r.rule_type]: { ...d, days_before: e.target.value } })}
-                    className={`${input} w-20`} />
-                  days
-                </label>
+                {meta?.noThreshold ? (
+                  <span className="text-sm text-slate-500 lg:w-[11.5rem] shrink-0">daily digest</span>
+                ) : (
+                  <label className="text-sm text-slate-400 flex items-center gap-2 shrink-0">
+                    within
+                    <input type="number" min="1" max="365" value={d.days_before}
+                      onChange={(e) => setRuleDrafts({ ...ruleDrafts, [r.rule_type]: { ...d, days_before: e.target.value } })}
+                      className={`${input} w-20`} />
+                    days
+                  </label>
+                )}
                 <input value={d.recipients}
                   onChange={(e) => setRuleDrafts({ ...ruleDrafts, [r.rule_type]: { ...d, recipients: e.target.value } })}
                   placeholder="recipients, comma-separated" className={`${input} flex-1`} />

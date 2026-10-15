@@ -47,7 +47,7 @@ async def test_v1_payload_creates_device_and_software(api):
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert data["device_created"] is True
-    assert data["software"] == {"total": 2, "added": 2, "removed": 0}
+    assert data["software"] == {"total": 2, "added": 2, "removed": 0, "upgraded": 0}
 
     async with api.session_factory() as s:
         device = (await s.execute(select(Device))).scalars().one()
@@ -70,7 +70,7 @@ async def test_software_is_diffed_not_replaced(api):
           "software": [{"name": "Zoom", "version": "5.17"}, {"name": "Slack", "version": "4.36"}]}
     data = (await _post(api, v2)).json()["data"]
     assert data["device_id"] == device_id
-    assert data["software"] == {"total": 2, "added": 1, "removed": 1}
+    assert data["software"] == {"total": 2, "added": 1, "removed": 1, "upgraded": 0}
     assert await _software(api, device_id) == {("Zoom", "5.17"), ("Slack", "4.36")}
     async with api.session_factory() as s:  # unchanged rows keep their identity
         assert (await s.execute(select(InstalledSoftware.id).where(

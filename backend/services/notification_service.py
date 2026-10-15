@@ -130,11 +130,38 @@ class NotificationService:
             return [f"- Application license expires {expires} ({days_left}d left; {state})"]
         return []
 
+    @staticmethod
+    async def _security_change_items(db: AsyncSession, _days: int):
+        """Risky device changes not yet emailed (last 7 days, so enabling the
+        rule doesn't send a backlog). Returns (items, on_sent): the changes are
+        marked notified only once the email has actually gone out."""
+        from sqlalchemy import update
+        from backend.models.device import Device
+        from backend.models.inventory import DeviceChange
+        from backend.services.inventory_service import describe_change
+
+        rows = (await db.execute(
+            select(DeviceChange, Device.hostname)
+            .join(Device, Device.id == DeviceChange.device_id)
+            .where(DeviceChange.severity == "warning", DeviceChange.notified_at.is_(None),
+                   DeviceChange.detected_at >= datetime.now(timezone.utc) - timedelta(days=7))
+            .order_by(Device.hostname, DeviceChange.detected_at)
+        )).all()
+        items = [f"- {hostname or f'device #{c.device_id}'}: {describe_change(c)} "
+                 f"({c.detected_at:%Y-%m-%d %H:%M} UTC)" for c, hostname in rows]
+        ids = [c.id for c, _ in rows]
+
+        async def on_sent() -> None:
+            await db.execute(update(DeviceChange).where(DeviceChange.id.in_(ids))
+                             .values(notified_at=datetime.now(timezone.utc)))
+        return items, on_sent
+
     _COLLECTORS = {
         "contract_expiry": ("Contract renewals due", _contract_items),
         "warranty_expiry": ("Asset warranties expiring", _warranty_items),
         "entitlement_expiry": ("Software licenses expiring", _entitlement_items),
         "license_expiry": ("Application license expiring", _license_items),
+        "security_changes": ("Risky device changes", _security_change_items),
     }
 
     @staticmethod
@@ -164,6 +191,9 @@ class NotificationService:
 
             title, collector = NotificationService._COLLECTORS[rule.rule_type]
             items = await collector.__func__(db, rule.days_before)
+            on_sent = None
+            if isinstance(items, tuple):     # collectors that must record what they reported
+                items, on_sent = items
             if not items:
                 summary[rule.rule_type] = "no matches"
                 continue
@@ -175,6 +205,8 @@ class NotificationService:
                     + "\n\nThis is an automated alert from your on-premises IT Asset Manager.")
             try:
                 await NotificationService.send_email(db, subject, body, rule.recipients)
+                if on_sent is not None:
+                    await on_sent()
                 status, error = "sent", None
                 summary[rule.rule_type] = f"sent ({len(items)} items)"
             except Exception as exc:  # log failures, keep processing other rules
