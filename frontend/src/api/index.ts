@@ -8,6 +8,8 @@ import type {
   DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet, SshHostKey, CredentialTestResult,
   ReportCatalog, ReportDefinition, ReportResult, LibraryReport, SavedReport, PinnedReport,
   TopologyGraph, SwitchPort, DeviceLocation, DeviceVirtualization,
+  LifecycleSummary, LifecycleDeviceRow, DeviceLifecycleInfo, LifecycleCatalogInfo, SoftwareCatalogInfo,
+  WarrantyImportResult, SoftwareProduct,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -176,7 +178,6 @@ export const toggleAgentToken = (id: number) => apiClient.patch<never, APIRespon
 export const getDeviceSoftware = (id: number) => apiClient.get<never, APIResponse<any[]>>(`/devices/${id}/software`);
 
 // ── Phase 2: SAM ──────────────────────────────────────────
-export const getSoftwareInventory = () => apiClient.get<never, APIResponse<any[]>>('/sam/software');
 export const getLicensePosition = () => apiClient.get<never, APIResponse<any>>('/sam/license-position');
 
 // ── Phase 3: CMDB audit ───────────────────────────────────
@@ -300,3 +301,23 @@ export const getSwitchPorts = (deviceId: number) =>
   apiClient.get<never, APIResponse<SwitchPort[]>>(`/topology/devices/${deviceId}/ports`);
 export const getDeviceLocation = (deviceId: number) =>
   apiClient.get<never, APIResponse<DeviceLocation[]>>(`/topology/devices/${deviceId}/location`);
+
+// ── Lifecycle ──────────────────────────────────────────
+export const getLifecycleSummary = () => apiClient.get<never, APIResponse<LifecycleSummary>>('/lifecycle/summary');
+export const getLifecycleDevices = (kind: 'os' | 'software', product_id: string, cycle: string) =>
+  apiClient.get<never, APIResponse<LifecycleDeviceRow[]>>('/lifecycle/devices', { params: { kind, product_id, cycle } });
+export const getDeviceLifecycle = (id: number) =>
+  apiClient.get<never, APIResponse<DeviceLifecycleInfo>>(`/devices/${id}/lifecycle`);
+export const getLifecycleCatalog = () =>
+  apiClient.get<never, APIResponse<LifecycleCatalogInfo & { software: SoftwareCatalogInfo }>>('/lifecycle/catalog');
+export const uploadLifecycleCatalog = (file: File) => {
+  const f = new FormData(); f.append('file', file);
+  return apiClient.post<never, APIResponse<LifecycleCatalogInfo>>('/lifecycle/catalog', f, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const refreshLifecycle = () => apiClient.post<never, APIResponse<Record<string, unknown>>>('/lifecycle/refresh');
+export const importWarranty = (file: File, dateOrder: 'dmy' | 'mdy') => {
+  const f = new FormData(); f.append('file', file); f.append('date_order', dateOrder);
+  return apiClient.post<never, APIResponse<WarrantyImportResult>>('/lifecycle/warranty-import', f, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const getSoftwareProducts = () => apiClient.get<never, APIResponse<SoftwareProduct[]>>('/sam/software');
+

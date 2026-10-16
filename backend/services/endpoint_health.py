@@ -5,11 +5,12 @@ tiles and the device-list filter so counts and drill-down lists always agree.
 from datetime import datetime, timedelta, timezone
 from typing import Dict
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.device import Device
 from backend.models.inventory import DeviceChange, DeviceInventory
+from backend.models.lifecycle import DeviceLifecycle
 
 ADMIN_SPRAWL_THRESHOLD = 3     # local admin group members; Administrator + Domain Admins is normal
 STALE_INVENTORY_DAYS = 7
@@ -21,6 +22,7 @@ HEALTH_LABELS = {
     "pending_reboot": "Reboot pending",
     "admin_sprawl": f"{ADMIN_SPRAWL_THRESHOLD}+ local admins",
     "stale_inventory": f"No inventory for {STALE_INVENTORY_DAYS}+ days",
+    "unsupported_os": "OS out of support",
 }
 
 
@@ -33,6 +35,9 @@ def health_conditions() -> Dict[str, object]:
         "pending_reboot": DeviceInventory.pending_reboot.is_(True),
         "admin_sprawl": DeviceInventory.local_admin_count >= ADMIN_SPRAWL_THRESHOLD,
         "stale_inventory": DeviceInventory.collected_at < stale_cutoff,
+        "unsupported_os": exists(select(DeviceLifecycle.id).where(
+            DeviceLifecycle.device_id == Device.id, DeviceLifecycle.kind == "os",
+            DeviceLifecycle.eol < func.current_date())),
     }
 
 

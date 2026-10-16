@@ -19,6 +19,7 @@ ALERT_RULE_TYPES = [
     "entitlement_expiry",   # entitlements: expires_on within days_before
     "license_expiry",       # this application's own license
     "security_changes",     # risky device changes (new local admin, AV/encryption off, …)
+    "os_end_of_support",    # devices whose OS support ends within days_before
 ]
 
 

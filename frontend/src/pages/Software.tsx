@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getLicensePosition, getSoftwareInventory } from '../api';
+import { getLicensePosition, getLifecycleCatalog, getSoftwareProducts } from '../api';
 import { Package, Scale } from 'lucide-react';
 
 const STATUS_STYLE: Record<string, string> = {
@@ -9,13 +10,80 @@ const STATUS_STYLE: Record<string, string> = {
   unlimited: 'bg-slate-500/20 text-slate-400 ring-slate-500/30',
 };
 
+const FILTER = 'px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
+function DiscoveredSoftware() {
+  const { data: inv } = useQuery({ queryKey: ['software-inventory'], queryFn: getSoftwareProducts });
+  const { data: cat } = useQuery({ queryKey: ['lifecycle-catalog'], queryFn: getLifecycleCatalog, staleTime: Infinity });
+  const [q, setQ] = useState('');
+  const [category, setCategory] = useState('');
+  const [showSystem, setShowSystem] = useState(false);
+  const software = useMemo(() => inv?.data ?? [], [inv]);
+  const hidden = new Set(cat?.data.software.hidden_by_default ?? []);
+  const categories = useMemo(
+    () => [...new Set(software.map((s) => s.category ?? 'Uncategorised'))].sort(), [software]);
+  const needle = q.trim().toLowerCase();
+  const rows = software.filter((s) => {
+    const c = s.category ?? 'Uncategorised';
+    if (category ? c !== category : !showSystem && hidden.has(c)) return false;
+    return !needle || `${s.product} ${s.vendor ?? ''}`.toLowerCase().includes(needle);
+  });
+  const hiddenCount = category ? 0 : software.filter((s) => hidden.has(s.category ?? '')).length;
+
+  return (
+    <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">
+      <div className="p-5 pb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <Package className="w-4 h-4" /> Discovered Software ({rows.length} of {software.length} products)
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          {!category && hiddenCount > 0 && (
+            <label className="inline-flex items-center gap-2 text-sm text-slate-400">
+              <input type="checkbox" checked={showSystem} onChange={(e) => setShowSystem(e.target.checked)} className="accent-indigo-500" />
+              Show system components &amp; runtimes ({hiddenCount})
+            </label>
+          )}
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={FILTER}>
+            <option value="">All categories</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter…" className={`${FILTER} w-48`} />
+        </div>
+      </div>
+      <div className="overflow-x-auto max-h-[32rem] overflow-y-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-slate-800">
+            <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">
+              <th className="px-6 py-3">Product</th><th className="px-6 py-3">Vendor</th><th className="px-6 py-3">Category</th>
+              <th className="px-6 py-3">Installs (devices)</th><th className="px-6 py-3">Copies</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/50">
+            {rows.length === 0 ? (
+              <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-500">
+                {software.length ? 'No matches.' : 'No software discovered yet — deploy the agent to devices.'}
+              </td></tr>
+            ) : rows.map((s) => (
+              <tr key={s.product} className="hover:bg-slate-800/40">
+                <td className="px-6 py-2.5 text-sm text-slate-200">{s.product}</td>
+                <td className="px-6 py-2.5 text-sm text-slate-400">{s.vendor ?? '—'}</td>
+                <td className="px-6 py-2.5 text-sm text-slate-400">{s.category ?? <span className="text-slate-600">—</span>}</td>
+                <td className="px-6 py-2.5 text-sm text-slate-300">{s.installs}</td>
+                <td className="px-6 py-2.5 text-sm text-slate-500">{s.copies}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function Software() {
   const { data: lp } = useQuery({ queryKey: ['license-position'], queryFn: getLicensePosition });
-  const { data: inv } = useQuery({ queryKey: ['software-inventory'], queryFn: getSoftwareInventory });
 
   const positions = lp?.data?.positions ?? [];
   const summary = lp?.data?.summary ?? {};
-  const software = inv?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -78,32 +146,7 @@ export default function Software() {
         </div>
       </div>
 
-      {/* Discovered software inventory */}
-      <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">
-        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider p-5 pb-3 flex items-center gap-2">
-          <Package className="w-4 h-4" /> Discovered Software ({software.length} products)
-        </h2>
-        <div className="overflow-x-auto max-h-[28rem] overflow-y-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-slate-800">
-              <tr className="border-b border-slate-700/50 text-xs font-semibold text-slate-400 tracking-wider">
-                <th className="px-6 py-3">Product (normalized)</th><th className="px-6 py-3">Installs (devices)</th><th className="px-6 py-3">Copies</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700/50">
-              {software.length === 0 ? (
-                <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-500">No software discovered yet — deploy the agent to devices.</td></tr>
-              ) : software.map((s: any) => (
-                <tr key={s.product} className="hover:bg-slate-800/40">
-                  <td className="px-6 py-2.5 text-sm text-slate-200">{s.product}</td>
-                  <td className="px-6 py-2.5 text-sm text-slate-300">{s.installs}</td>
-                  <td className="px-6 py-2.5 text-sm text-slate-500">{s.copies}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DiscoveredSoftware />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
 } from '../components/device/InventoryTabs';
 import clsx from 'clsx';
 import NetworkLocation from '../components/topology/NetworkLocation';
+import DeviceLifecycleCard from '../components/lifecycle/DeviceLifecycleCard';
 import SwitchPorts from '../components/topology/SwitchPorts';
 import { getSwitchPorts } from '../api';
 import {
@@ -260,6 +261,7 @@ export default function DeviceDetail() {
 
       {activeTab === 'overview' && <>
       {virt?.host && <VmHostCard host={virt.host} />}
+      <DeviceLifecycleCard deviceId={device.id} />
       <NetworkLocation deviceId={device.id} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

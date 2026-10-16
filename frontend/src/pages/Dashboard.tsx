@@ -39,7 +39,7 @@ function Stat({ label, value, icon: Icon, tint, hint, onClick }: {
   );
 }
 
-const HEALTH_ORDER = ['no_antivirus', 'firewall_off', 'not_encrypted', 'admin_sprawl', 'pending_reboot', 'stale_inventory'];
+const HEALTH_ORDER = ['no_antivirus', 'firewall_off', 'not_encrypted', 'unsupported_os', 'admin_sprawl', 'pending_reboot', 'stale_inventory'];
 
 function EndpointHealthPanel() {
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ function EndpointHealthPanel() {
           <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2"><HeartPulse className="w-4 h-4" /> Endpoint health</h2>
           <span className="text-xs text-slate-500">{health.inventoried} device{health.inventoried === 1 ? '' : 's'} with inventory</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {HEALTH_ORDER.map((key) => {
             const n = health.counts[key] ?? 0;
             return (

@@ -32,7 +32,7 @@ from backend.models.inventory import (
 )
 from backend.models.software import InstalledSoftware
 from backend.schemas.inventory import InventoryReport, SoftwareItem
-from backend.services.software_normalizer import normalize_software
+from backend.services.software_normalizer import classify_software
 
 # Sources whose reports come from inside the machine and are authoritative for
 # its hardware identity and OS on the linked asset.
@@ -211,9 +211,11 @@ async def _sync_software(db: AsyncSession, device_id: int, items: List[SoftwareI
     for key in new_keys:
         name, version = key
         item = reported[key]
+        publisher = _clip(item.publisher, 255) or None
+        cls = classify_software(name, publisher)
         db.add(InstalledSoftware(
-            device_id=device_id, name=name, normalized_name=normalize_software(name)[:500],
-            version=version, publisher=_clip(item.publisher, 255) or None, last_seen=now,
+            device_id=device_id, name=name, normalized_name=cls.product[:500], vendor=_clip(cls.publisher, 255),
+            category=cls.category, version=version, publisher=publisher, last_seen=now,
         ))
         changes.append(Change("software", "added", name, new=version))
 
@@ -636,6 +638,8 @@ class InventoryService:
             asset_updated = await _push_to_asset(db, device, report)
 
         await db.flush()
+        from backend.services.lifecycle_service import LifecycleService
+        await LifecycleService.refresh_device(db, device.id)
         return {
             "device_id": device.id,
             "device_created": created,

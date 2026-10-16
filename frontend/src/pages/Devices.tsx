@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 const HEALTH_LABELS: Record<string, string> = {
   no_antivirus: 'No working antivirus', firewall_off: 'Firewall off', not_encrypted: 'Disk not encrypted',
   pending_reboot: 'Reboot pending', admin_sprawl: '3+ local admins', stale_inventory: 'No inventory for 7+ days',
+  unsupported_os: 'OS out of support',
 };
 
 

@@ -24,6 +24,7 @@ import Agents from './pages/Agents';
 import Scanning from './pages/Scanning';
 import Topology from './pages/Topology';
 import Reports from './pages/Reports';
+import Lifecycle from './pages/Lifecycle';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/posture" element={<ProtectedRoute><Posture /></ProtectedRoute>} />
       <Route path="/software" element={<ProtectedRoute><Software /></ProtectedRoute>} />
+      <Route path="/lifecycle" element={<ProtectedRoute><Lifecycle /></ProtectedRoute>} />
       <Route path="/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
       <Route path="/scanning" element={<ProtectedRoute><Scanning /></ProtectedRoute>} />
       <Route path="/topology" element={<ProtectedRoute><Topology /></ProtectedRoute>} />

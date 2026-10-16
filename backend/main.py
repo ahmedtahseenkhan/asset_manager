@@ -18,7 +18,7 @@ from backend.services.scheduler_service import scheduler
 from backend.licensing.state import license_manager
 from backend.licensing.enforcement import LicenseEnforcementMiddleware
 
-from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets, reconciliation, contracts, entitlements, notifications, agents, sam, posture, reports, scanning, inventory, report_builder, topology
+from backend.routers import auth, devices, connectors, dashboard, admin, license as license_router, assets, reconciliation, contracts, entitlements, notifications, agents, sam, posture, reports, scanning, inventory, report_builder, topology, lifecycle
 
 configure_json_logging(debug=settings.debug)
 logger = logging.getLogger(__name__)
@@ -38,10 +38,13 @@ async def lifespan(app: FastAPI):
         logger.warning("Marked %d scan run(s) interrupted by the restart as failed", interrupted)
     async with async_session() as db:
         await scheduler.reload_jobs(db)
+    from backend.services.lifecycle_service import lifecycle_startup
+    lifecycle_task = asyncio.create_task(lifecycle_startup(async_session))
 
     yield
 
     logger.info("Shutting down...")
+    lifecycle_task.cancel()
     scheduler.stop()
     await engine.dispose()
 
@@ -85,6 +88,7 @@ app.include_router(scanning.router, prefix="/api")
 app.include_router(inventory.router, prefix="/api")
 app.include_router(report_builder.router, prefix="/api")
 app.include_router(topology.router, prefix="/api")
+app.include_router(lifecycle.router, prefix="/api")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

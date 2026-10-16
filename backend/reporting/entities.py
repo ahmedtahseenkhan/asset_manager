@@ -12,9 +12,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
-from sqlalchemy import case, exists, select
+from sqlalchemy import Date, case, exists, func, select
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import ColumnElement
+from sqlalchemy.sql.functions import FunctionElement
 
 from backend.models.asset import (
     ASSET_CATEGORIES, BACKUP_STATUS, CRITICALITY, DATA_CLASSIFICATION, LIFECYCLE_STATES, LOG_SOURCE_STATUS,
@@ -23,13 +25,16 @@ from backend.models.asset import (
 from backend.models.contract import Contract
 from backend.models.device import Device
 from backend.models.entitlement import Entitlement
+from backend.lifecycle.eol import ENDING_SOON_DAYS
 from backend.models.inventory import (
     CHANGE_CATEGORIES, DeviceAntivirus, DeviceChange, DeviceInventory, DeviceLocalAccount, DeviceMonitor,
     DevicePatch, DeviceService, DeviceVolume,
 )
+from backend.models.lifecycle import DeviceLifecycle
 from backend.models.software import InstalledSoftware
 from backend.models.virtualization import VmPlacement
 from backend.models.vulnerability import SEVERITIES, Vulnerability
+from backend.services.software_normalizer import CATEGORIES as SOFTWARE_CATEGORIES
 
 
 @dataclass
@@ -111,6 +116,47 @@ def _has_admin(v):
         _like(DeviceLocalAccount.name, v)))
 
 
+# ── end of life: status relative to today, computed in SQL so it never goes stale
+class _soon(FunctionElement):
+    """Today + ENDING_SOON_DAYS, in the database's own date arithmetic."""
+    type = Date()
+    inherit_cache = True
+
+
+@compiles(_soon)
+def _soon_default(element, compiler, **kw):
+    return f"(CURRENT_DATE + {ENDING_SOON_DAYS})"
+
+
+@compiles(_soon, "sqlite")
+def _soon_sqlite(element, compiler, **kw):
+    return f"date('now', '+{ENDING_SOON_DAYS} days')"
+
+
+EOL_STATUSES = ["unsupported", "ending_soon", "supported"]
+
+
+def _eol_status(eol, missing=None):
+    """unsupported / ending_soon / supported from an end-of-life date column."""
+    whens = [(eol < func.current_date(), "unsupported"), (eol <= _soon(), "ending_soon")]
+    if missing is not None:
+        whens.insert(0, (missing, None))
+    return case(*whens, else_="supported")
+
+
+def _os_lifecycle(col):
+    return (select(col).where(DeviceLifecycle.device_id == Device.id, DeviceLifecycle.kind == "os")
+            .limit(1).scalar_subquery())
+
+
+_os_eol = _os_lifecycle(DeviceLifecycle.eol)
+_os_identified = exists(select(DeviceLifecycle.id).where(
+    DeviceLifecycle.device_id == Device.id, DeviceLifecycle.kind == "os"))
+_unsupported_software = (select(func.count(DeviceLifecycle.id)).where(
+    DeviceLifecycle.device_id == Device.id, DeviceLifecycle.kind == "software",
+    DeviceLifecycle.eol < func.current_date()).scalar_subquery())
+
+
 ENTITIES: Dict[str, Entity] = {}
 
 
@@ -169,7 +215,12 @@ _register(Entity(
         Field("collected_at", "Inventory date", "datetime", DeviceInventory.collected_at),
         Field("first_seen", "First seen", "datetime", Device.first_seen),
         Field("last_seen", "Last seen", "datetime", Device.last_seen),
+        Field("os_lifecycle", "OS release", "string", _os_lifecycle(DeviceLifecycle.title)),
+        Field("os_eol", "OS end of support", "date", _os_eol),
+        Field("os_support", "OS support", "enum", _eol_status(_os_eol, ~_os_identified), EOL_STATUSES),
+        Field("unsupported_software", "Unsupported software (titles)", "number", _unsupported_software),
         Field("asset_tag", "Asset tag", "string", _asset_of_device(Asset.asset_tag)),
+        Field("warranty_end", "Warranty end (asset)", "date", _asset_of_device(Asset.warranty_end)),
         Field("department", "Department (asset)", "string", _asset_of_device(Asset.department)),
         Field("location", "Location (asset)", "string", _asset_of_device(Asset.location)),
         Field("asset_owner", "Owner (asset)", "string", _asset_of_device(Asset.point_of_contact)),
@@ -199,6 +250,8 @@ _device_child("software", "Installed software", InstalledSoftware,
                Field("version", "Version", "string", InstalledSoftware.version),
                Field("publisher", "Publisher", "string", InstalledSoftware.publisher),
                Field("normalized_name", "Product (normalized)", "string", InstalledSoftware.normalized_name),
+               Field("vendor", "Vendor", "string", InstalledSoftware.vendor),
+               Field("category", "Category", "enum", InstalledSoftware.category, SOFTWARE_CATEGORIES),
                Field("last_seen", "Last seen", "datetime", InstalledSoftware.last_seen)],
               ["hostname", "name", "version", "publisher"], "name")
 
@@ -261,6 +314,20 @@ _device_child("changes", "Device changes", DeviceChange, "Change history from in
                Field("source", "Reported by", "string", DeviceChange.source)],
               ["detected_at", "hostname", "category", "change_type", "item", "old_value", "new_value"],
               "detected_at", category="Security")
+
+
+_device_child("lifecycle", "End of life", DeviceLifecycle,
+              "Each device's OS release and end-of-support software, with support dates.",
+              [Field("kind", "Type", "enum", DeviceLifecycle.kind, ["os", "software"]),
+               Field("title", "Release", "string", DeviceLifecycle.title),
+               Field("product", "Product", "string", DeviceLifecycle.product),
+               Field("cycle", "Version", "string", DeviceLifecycle.cycle),
+               Field("eol", "End of support", "date", DeviceLifecycle.eol),
+               Field("eol_status", "Support", "enum", _eol_status(DeviceLifecycle.eol), EOL_STATUSES),
+               Field("support_end", "Mainstream support ends", "date", DeviceLifecycle.support_end),
+               Field("extended", "Paid extended support until", "date", DeviceLifecycle.extended),
+               Field("detail", "Detected as", "string", DeviceLifecycle.detail)],
+              ["hostname", "title", "eol", "eol_status", "detail"], "eol")
 
 
 # ── Virtual machines ───────────────────────────────────────────────────────

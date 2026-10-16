@@ -348,13 +348,31 @@ OT networks can be fragile; this phase is off by default and strictly read-only.
 
 ## Phase 7 — Warranty & lifecycle enrichment
 
-- [ ] 7.1 Bundled **OS / software end-of-life catalogue** (shipped with each
+- [x] 7.1 Bundled **OS / software end-of-life catalogue** (shipped with each
       release, works offline) → "EOL OS" flags and reports.
-- [ ] 7.2 **Warranty lookup** for Dell / Lenovo / HP by serial — optional, needs
+- [~] 7.2 **Warranty lookup** for Dell / Lenovo / HP by serial — optional, needs
       internet + vendor API keys; offline alternative: warranty CSV import.
       Fills `warranty_end`, which already drives the lifecycle forecast report.
-- [ ] 7.3 Software catalogue: publisher/category normalisation to improve SAM
+      *Done:* the offline CSV import. *Not done:* the online vendor lookups.
+- [x] 7.3 Software catalogue: publisher/category normalisation to improve SAM
       matching and the "unwanted software" report.
+
+*Status:* 7.1 and 7.3 done, 7.2 done offline only. `lifecycle/eol_catalog.json`
+(27 products: Windows by build and edition including LTSC/IoT, Windows Server,
+macOS, Ubuntu, Debian, RHEL, CentOS, Rocky, Alma; Office, Visio, Project, SQL
+Server, Exchange, SharePoint, Visual Studio, .NET, Python, Node.js, MySQL,
+PostgreSQL, Acrobat classic, Flash, Silverlight). Identification logic is in
+code, dates are in the catalogue, so an uploaded catalogue can add releases.
+`device_lifecycle` (migration 0010) is rebuilt per device on ingest and fully at
+startup, daily and on upload; AD-only devices are matched from the source's raw
+OS strings. Status is computed against today in SQL, so it never goes stale.
+`lifecycle/software_catalog.json` (209 product rules, 20 categories, publisher
+normalisation) sets `installed_software.normalized_name/vendor/category`; the
+macOS agent now reports the signing identity as publisher. UI: Lifecycle page,
+device Lifecycle card, dashboard tile, Software page categories. Reports: an
+End-of-life entity, OS fields on devices, nine built-ins. Alert rule
+`os_end_of_support`. Dates were compiled from vendor lifecycle pages as known in
+mid-2026; announcements after that need a catalogue update.
 
 ---
 

@@ -8,6 +8,7 @@ const HEALTH_FILTERS: Record<string, ReportFilter> = {
   pending_reboot: { field: 'pending_reboot', op: 'is_true', value: null },
   admin_sprawl: { field: 'local_admin_count', op: 'gte', value: 3 },
   stale_inventory: { field: 'collected_at', op: 'older_than_days', value: 7 },
+  unsupported_os: { field: 'os_support', op: 'eq', value: 'unsupported' },
 };
 
 export function devicesExport(opts: { search?: string; os?: string; health?: string }): ReportDefinition {

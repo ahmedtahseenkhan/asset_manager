@@ -158,9 +158,19 @@ def _mac_hardware(hw: dict) -> dict:
     }
 
 
+def _mac_publisher(app: dict):
+    """The signing identity names the publisher ("Developer ID Application:
+    Google LLC (EQHXZ8M8AV)"); apps that ship with macOS are Apple's."""
+    for signer in app.get("signed_by") or []:
+        m = re.match(r"Developer ID Application: (.+?)(?: \([A-Z0-9]{10}\))?$", signer)
+        if m:
+            return m.group(1)
+    return "Apple" if app.get("obtained_from") == "apple" else None
+
+
 def _mac_software() -> list:
     data = _json_cmd(["/usr/sbin/system_profiler", "-json", "SPApplicationsDataType"]) or {}
-    return [{"name": a.get("_name", ""), "version": a.get("version"), "publisher": a.get("obtained_from")}
+    return [{"name": a.get("_name", ""), "version": a.get("version"), "publisher": _mac_publisher(a)}
             for a in data.get("SPApplicationsDataType", []) if a.get("_name")]
 
 

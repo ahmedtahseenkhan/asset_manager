@@ -1,0 +1,1511 @@
+{
+ "schema": 1,
+ "version": "2026.10.16",
+ "published": "2026-10-16",
+ "notes": [
+  "products: first matching pattern wins (case-insensitive, on the installed title).",
+  "{name} placeholders take a named group from the pattern, {0} the whole match, {publisher} the cleaned publisher, {title} the cleaned title.",
+  "publisher_match (optional) must also match the reported publisher."
+ ],
+ "categories": [
+  "Browser",
+  "Office & productivity",
+  "Communication",
+  "Remote access",
+  "Development",
+  "Database",
+  "Security",
+  "Runtime & framework",
+  "System component",
+  "Utilities",
+  "Admin tools",
+  "Media & graphics",
+  "Engineering & design",
+  "Cloud storage",
+  "Virtualisation",
+  "Networking & VPN",
+  "Consumer VPN & proxy",
+  "Management & monitoring",
+  "File sharing & P2P",
+  "Games"
+ ],
+ "hidden_by_default": [
+  "System component",
+  "Runtime & framework"
+ ],
+ "publishers": [
+  {
+   "match": "^microsoft\\b",
+   "name": "Microsoft"
+  },
+  {
+   "match": "^google\\b",
+   "name": "Google"
+  },
+  {
+   "match": "^adobe\\b",
+   "name": "Adobe"
+  },
+  {
+   "match": "^(oracle|sun microsystems)\\b",
+   "name": "Oracle"
+  },
+  {
+   "match": "^mozilla\\b",
+   "name": "Mozilla"
+  },
+  {
+   "match": "^apple\\b",
+   "name": "Apple"
+  },
+  {
+   "match": "^intel\\b",
+   "name": "Intel"
+  },
+  {
+   "match": "^nvidia\\b",
+   "name": "NVIDIA"
+  },
+  {
+   "match": "^(advanced micro devices|amd)\\b",
+   "name": "AMD"
+  },
+  {
+   "match": "^realtek\\b",
+   "name": "Realtek"
+  },
+  {
+   "match": "^dell\\b",
+   "name": "Dell"
+  },
+  {
+   "match": "^(hewlett[- ]packard enterprise|hpe)\\b",
+   "name": "HPE"
+  },
+  {
+   "match": "^(hewlett[- ]packard|hp)\\b",
+   "name": "HP"
+  },
+  {
+   "match": "^lenovo\\b",
+   "name": "Lenovo"
+  },
+  {
+   "match": "^cisco\\b",
+   "name": "Cisco"
+  },
+  {
+   "match": "^vmware\\b",
+   "name": "VMware"
+  },
+  {
+   "match": "^broadcom\\b",
+   "name": "Broadcom"
+  },
+  {
+   "match": "^(citrix|cloud software group)\\b",
+   "name": "Citrix"
+  },
+  {
+   "match": "^zoom\\b",
+   "name": "Zoom"
+  },
+  {
+   "match": "^teamviewer\\b",
+   "name": "TeamViewer"
+  },
+  {
+   "match": "^python software foundation\\b",
+   "name": "Python Software Foundation"
+  },
+  {
+   "match": "^(node\\.js foundation|openjs)\\b",
+   "name": "OpenJS Foundation"
+  },
+  {
+   "match": "^the document foundation\\b",
+   "name": "The Document Foundation"
+  },
+  {
+   "match": "^igor pavlov\\b",
+   "name": "Igor Pavlov"
+  },
+  {
+   "match": "^jetbrains\\b",
+   "name": "JetBrains"
+  },
+  {
+   "match": "^github\\b",
+   "name": "GitHub"
+  },
+  {
+   "match": "^slack\\b",
+   "name": "Slack"
+  },
+  {
+   "match": "^(logmein|goto)\\b",
+   "name": "GoTo"
+  },
+  {
+   "match": "^(symantec|norton|gen digital|avast|avg)\\b",
+   "name": "Gen Digital"
+  },
+  {
+   "match": "^(mcafee)\\b",
+   "name": "McAfee"
+  },
+  {
+   "match": "^trellix\\b",
+   "name": "Trellix"
+  },
+  {
+   "match": "^sophos\\b",
+   "name": "Sophos"
+  },
+  {
+   "match": "^eset\\b",
+   "name": "ESET"
+  },
+  {
+   "match": "^kaspersky\\b",
+   "name": "Kaspersky"
+  },
+  {
+   "match": "^bitdefender\\b",
+   "name": "Bitdefender"
+  },
+  {
+   "match": "^trend micro\\b",
+   "name": "Trend Micro"
+  },
+  {
+   "match": "^crowdstrike\\b",
+   "name": "CrowdStrike"
+  },
+  {
+   "match": "^fortinet\\b",
+   "name": "Fortinet"
+  },
+  {
+   "match": "^palo alto networks\\b",
+   "name": "Palo Alto Networks"
+  },
+  {
+   "match": "^autodesk\\b",
+   "name": "Autodesk"
+  },
+  {
+   "match": "^dropbox\\b",
+   "name": "Dropbox"
+  },
+  {
+   "match": "^valve\\b",
+   "name": "Valve"
+  },
+  {
+   "match": "^videolan\\b",
+   "name": "VideoLAN"
+  },
+  {
+   "match": "^(qualcomm)\\b",
+   "name": "Qualcomm"
+  },
+  {
+   "match": "^synaptics\\b",
+   "name": "Synaptics"
+  },
+  {
+   "match": "^logitech\\b",
+   "name": "Logitech"
+  },
+  {
+   "match": "^(asus|asustek)\\b",
+   "name": "ASUS"
+  },
+  {
+   "match": "^acer\\b",
+   "name": "Acer"
+  },
+  {
+   "match": "^samsung\\b",
+   "name": "Samsung"
+  },
+  {
+   "match": "^amazon\\b",
+   "name": "Amazon"
+  },
+  {
+   "match": "^salesforce\\b",
+   "name": "Salesforce"
+  },
+  {
+   "match": "^ibm\\b",
+   "name": "IBM"
+  },
+  {
+   "match": "^sap\\b",
+   "name": "SAP"
+  },
+  {
+   "match": "^docker\\b",
+   "name": "Docker"
+  }
+ ],
+ "products": [
+  {
+   "match": "^(Security )?Update for |^Hotfix for |^Service Pack \\d+ for ",
+   "product": "Windows/Office update",
+   "publisher": "Microsoft",
+   "category": "System component"
+  },
+  {
+   "match": "^Microsoft Visual C\\+\\+ ",
+   "product": "Microsoft Visual C++ Redistributable",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft Edge WebView2",
+   "product": "Microsoft Edge WebView2 Runtime",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft Edge Update|^Google Update Helper|^Mozilla Maintenance Service|^Java Auto Updater|^Adobe (Refresh Manager|Genuine Service)",
+   "product": "Updater service",
+   "publisher": "{publisher}",
+   "category": "System component"
+  },
+  {
+   "match": "^Microsoft Update Health Tools|^Update Health Tools|^Microsoft Policy Platform|^Windows PC Health Check|^Microsoft GameInput",
+   "product": "Windows component",
+   "publisher": "Microsoft",
+   "category": "System component"
+  },
+  {
+   "match": "^Windows Driver Package",
+   "product": "Windows driver package",
+   "publisher": "{publisher}",
+   "category": "System component"
+  },
+  {
+   "match": "^(?P<v>Intel|NVIDIA|AMD|Realtek|Synaptics|Conexant|Dolby|DTS|ELAN|Alps|Qualcomm|Killer|Marvell|ASMedia|Cirrus Logic|Waves|Thunderbolt|Logitech)(?:\\(R\\)|®)?\\b",
+   "product": "{v} drivers & utilities",
+   "publisher": "{v}",
+   "category": "System component"
+  },
+  {
+   "match": "^(?P<v>Dell|HP|HPE|Lenovo|ASUS|Acer|Fujitsu|Toshiba|Dynabook|Samsung|Microsoft Surface)\\b.*\\b(Update|Command|SupportAssist|Driver|Power Manager|Optimizer|Peripheral Manager|Vantage|System Interface|Hotkey|Support|Digital Delivery|Display Manager|Audio|Wolf|Sure ?(Click|Sense|Start|View)|Client Security|Connection Manager|Battery|Firmware|BIOS|Dock|Diagnostics|Smart|Easy|Insights|Notifications|Pen)\\b",
+   "product": "{v} system utilities",
+   "publisher": "{v}",
+   "category": "System component"
+  },
+  {
+   "match": "^VMware Tools",
+   "product": "VMware Tools",
+   "publisher": "VMware",
+   "category": "System component"
+  },
+  {
+   "match": "^(Npcap|WinPcap)\\b",
+   "product": "Packet capture driver",
+   "publisher": "{publisher}",
+   "category": "System component"
+  },
+  {
+   "match": "^Google Chrome\\b",
+   "product": "Google Chrome",
+   "publisher": "Google",
+   "category": "Browser"
+  },
+  {
+   "match": "^Microsoft Edge\\b",
+   "product": "Microsoft Edge",
+   "publisher": "Microsoft",
+   "category": "Browser"
+  },
+  {
+   "match": "^Mozilla Firefox\\b|^Firefox$",
+   "product": "Mozilla Firefox",
+   "publisher": "Mozilla",
+   "category": "Browser"
+  },
+  {
+   "match": "^Opera( GX)?( Stable)?\\b",
+   "product": "Opera",
+   "publisher": "Opera",
+   "category": "Browser"
+  },
+  {
+   "match": "^Brave\\b",
+   "product": "Brave",
+   "publisher": "Brave Software",
+   "category": "Browser"
+  },
+  {
+   "match": "^Vivaldi\\b",
+   "product": "Vivaldi",
+   "publisher": "Vivaldi Technologies",
+   "category": "Browser"
+  },
+  {
+   "match": "^Tor Browser\\b",
+   "product": "Tor Browser",
+   "publisher": "Tor Project",
+   "category": "Browser"
+  },
+  {
+   "match": "^Safari$",
+   "product": "Safari",
+   "publisher": "Apple",
+   "category": "Browser"
+  },
+  {
+   "match": "^Chromium\\b",
+   "product": "Chromium",
+   "publisher": "Chromium",
+   "category": "Browser"
+  },
+  {
+   "match": "^Microsoft (Office )?365\\b|^Microsoft Office 365\\b",
+   "product": "Microsoft 365 Apps",
+   "publisher": "Microsoft",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Microsoft (Office )?Visio\\b",
+   "product": "Microsoft Visio",
+   "publisher": "Microsoft",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Microsoft (Office )?Project\\b(?!.*Server)",
+   "product": "Microsoft Project",
+   "publisher": "Microsoft",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Microsoft (Office )?OneNote\\b",
+   "product": "Microsoft OneNote",
+   "publisher": "Microsoft",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Microsoft Office\\b",
+   "product": "Microsoft Office",
+   "publisher": "Microsoft",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^LibreOffice\\b",
+   "product": "LibreOffice",
+   "publisher": "The Document Foundation",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^(Apache )?OpenOffice\\b",
+   "product": "Apache OpenOffice",
+   "publisher": "Apache",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Adobe (Acrobat )?Reader\\b|^Adobe Acrobat Reader\\b",
+   "product": "Adobe Acrobat Reader",
+   "publisher": "Adobe",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Adobe Acrobat\\b",
+   "product": "Adobe Acrobat",
+   "publisher": "Adobe",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Foxit (PDF )?Reader\\b",
+   "product": "Foxit PDF Reader",
+   "publisher": "Foxit",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Foxit (PhantomPDF|PDF Editor)\\b",
+   "product": "Foxit PDF Editor",
+   "publisher": "Foxit",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^(Nitro (Pro|PDF)|PDF-XChange|PDF24|PDFsam|Sumatra ?PDF)\\b",
+   "product": "PDF tool",
+   "publisher": "{publisher}",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^(Keynote|Pages|Numbers)$",
+   "product": "Apple iWork",
+   "publisher": "Apple",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Evernote\\b",
+   "product": "Evernote",
+   "publisher": "Evernote",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Notion$",
+   "product": "Notion",
+   "publisher": "Notion Labs",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^Obsidian$",
+   "product": "Obsidian",
+   "publisher": "Obsidian",
+   "category": "Office & productivity"
+  },
+  {
+   "match": "^(Microsoft )?Teams\\b|^Microsoft Teams\\b",
+   "product": "Microsoft Teams",
+   "publisher": "Microsoft",
+   "category": "Communication"
+  },
+  {
+   "match": "^Zoom\\b",
+   "product": "Zoom",
+   "publisher": "Zoom",
+   "category": "Communication"
+  },
+  {
+   "match": "^Slack\\b",
+   "product": "Slack",
+   "publisher": "Slack",
+   "category": "Communication"
+  },
+  {
+   "match": "^Skype\\b",
+   "product": "Skype",
+   "publisher": "Microsoft",
+   "category": "Communication"
+  },
+  {
+   "match": "^(Cisco )?Webex\\b",
+   "product": "Webex",
+   "publisher": "Cisco",
+   "category": "Communication"
+  },
+  {
+   "match": "^WhatsApp\\b",
+   "product": "WhatsApp",
+   "publisher": "Meta",
+   "category": "Communication"
+  },
+  {
+   "match": "^Telegram\\b",
+   "product": "Telegram",
+   "publisher": "Telegram",
+   "category": "Communication"
+  },
+  {
+   "match": "^Discord$",
+   "product": "Discord",
+   "publisher": "Discord",
+   "category": "Communication"
+  },
+  {
+   "match": "^Signal$",
+   "product": "Signal",
+   "publisher": "Signal",
+   "category": "Communication"
+  },
+  {
+   "match": "^GoTo ?Meeting\\b|^GoTo$",
+   "product": "GoTo Meeting",
+   "publisher": "GoTo",
+   "category": "Communication"
+  },
+  {
+   "match": "^(Mozilla )?Thunderbird\\b",
+   "product": "Mozilla Thunderbird",
+   "publisher": "Mozilla",
+   "category": "Communication"
+  },
+  {
+   "match": "^RingCentral\\b",
+   "product": "RingCentral",
+   "publisher": "RingCentral",
+   "category": "Communication"
+  },
+  {
+   "match": "^(Cisco )?Jabber\\b",
+   "product": "Cisco Jabber",
+   "publisher": "Cisco",
+   "category": "Communication"
+  },
+  {
+   "match": "^3CX\\b",
+   "product": "3CX",
+   "publisher": "3CX",
+   "category": "Communication"
+  },
+  {
+   "match": "^TeamViewer\\b",
+   "product": "TeamViewer",
+   "publisher": "TeamViewer",
+   "category": "Remote access"
+  },
+  {
+   "match": "^AnyDesk\\b",
+   "product": "AnyDesk",
+   "publisher": "AnyDesk Software",
+   "category": "Remote access"
+  },
+  {
+   "match": "^RustDesk\\b",
+   "product": "RustDesk",
+   "publisher": "RustDesk",
+   "category": "Remote access"
+  },
+  {
+   "match": "^TightVNC\\b",
+   "product": "TightVNC",
+   "publisher": "GlavSoft",
+   "category": "Remote access"
+  },
+  {
+   "match": "^UltraVNC\\b",
+   "product": "UltraVNC",
+   "publisher": "UltraVNC",
+   "category": "Remote access"
+  },
+  {
+   "match": "^TigerVNC\\b",
+   "product": "TigerVNC",
+   "publisher": "TigerVNC",
+   "category": "Remote access"
+  },
+  {
+   "match": "^(RealVNC|VNC (Server|Viewer|Connect))\\b",
+   "product": "RealVNC",
+   "publisher": "RealVNC",
+   "category": "Remote access"
+  },
+  {
+   "match": "^LogMeIn\\b",
+   "product": "LogMeIn",
+   "publisher": "GoTo",
+   "category": "Remote access"
+  },
+  {
+   "match": "^(ScreenConnect|ConnectWise Control)\\b",
+   "product": "ConnectWise ScreenConnect",
+   "publisher": "ConnectWise",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Splashtop\\b",
+   "product": "Splashtop",
+   "publisher": "Splashtop",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Chrome Remote Desktop\\b",
+   "product": "Chrome Remote Desktop",
+   "publisher": "Google",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Ammyy\\b",
+   "product": "Ammyy Admin",
+   "publisher": "Ammyy",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Supremo\\b",
+   "product": "Supremo",
+   "publisher": "Nanosystems",
+   "category": "Remote access"
+  },
+  {
+   "match": "^RemotePC\\b",
+   "product": "RemotePC",
+   "publisher": "IDrive",
+   "category": "Remote access"
+  },
+  {
+   "match": "^(SolarWinds )?DameWare\\b",
+   "product": "DameWare",
+   "publisher": "SolarWinds",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Radmin\\b(?! ?VPN)",
+   "product": "Radmin",
+   "publisher": "Famatech",
+   "category": "Remote access"
+  },
+  {
+   "match": "^NoMachine\\b",
+   "product": "NoMachine",
+   "publisher": "NoMachine",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Parsec\\b",
+   "product": "Parsec",
+   "publisher": "Parsec",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Zoho Assist\\b",
+   "product": "Zoho Assist",
+   "publisher": "Zoho",
+   "category": "Remote access"
+  },
+  {
+   "match": "^GoTo ?(Assist|Resolve)\\b",
+   "product": "GoTo Resolve",
+   "publisher": "GoTo",
+   "category": "Remote access"
+  },
+  {
+   "match": "^(BeyondTrust|Bomgar)\\b",
+   "product": "BeyondTrust Remote Support",
+   "publisher": "BeyondTrust",
+   "category": "Remote access"
+  },
+  {
+   "match": "^AeroAdmin\\b",
+   "product": "AeroAdmin",
+   "publisher": "AeroAdmin",
+   "category": "Remote access"
+  },
+  {
+   "match": "^UltraViewer\\b",
+   "product": "UltraViewer",
+   "publisher": "DucFabulous",
+   "category": "Remote access"
+  },
+  {
+   "match": "^Remote Utilities\\b",
+   "product": "Remote Utilities",
+   "publisher": "Remote Utilities",
+   "category": "Remote access"
+  },
+  {
+   "match": "^(Microsoft )?Visual Studio Code\\b",
+   "product": "Visual Studio Code",
+   "publisher": "Microsoft",
+   "category": "Development"
+  },
+  {
+   "match": "^(Microsoft )?Visual Studio\\b(?!.*Tools for Office)",
+   "product": "Microsoft Visual Studio",
+   "publisher": "Microsoft",
+   "category": "Development"
+  },
+  {
+   "match": "^Git( version [\\d.]+)?$|^Git for Windows\\b",
+   "product": "Git",
+   "publisher": "Git",
+   "category": "Development"
+  },
+  {
+   "match": "^GitHub Desktop\\b",
+   "product": "GitHub Desktop",
+   "publisher": "GitHub",
+   "category": "Development"
+  },
+  {
+   "match": "^(JetBrains )?(?P<j>IntelliJ IDEA|PyCharm|WebStorm|PhpStorm|Rider|CLion|GoLand|DataGrip|DataSpell|RubyMine|Toolbox App|Fleet)\\b",
+   "product": "JetBrains {j}",
+   "publisher": "JetBrains",
+   "category": "Development"
+  },
+  {
+   "match": "^Docker( Desktop)?$|^Docker Desktop\\b",
+   "product": "Docker Desktop",
+   "publisher": "Docker",
+   "category": "Development"
+  },
+  {
+   "match": "^Postman\\b",
+   "product": "Postman",
+   "publisher": "Postman",
+   "category": "Development"
+  },
+  {
+   "match": "^Android Studio\\b",
+   "product": "Android Studio",
+   "publisher": "Google",
+   "category": "Development"
+  },
+  {
+   "match": "^Xcode$",
+   "product": "Xcode",
+   "publisher": "Apple",
+   "category": "Development"
+  },
+  {
+   "match": "^Eclipse\\b(?! Temurin)",
+   "product": "Eclipse IDE",
+   "publisher": "Eclipse Foundation",
+   "category": "Development"
+  },
+  {
+   "match": "^Sublime Text\\b",
+   "product": "Sublime Text",
+   "publisher": "Sublime HQ",
+   "category": "Development"
+  },
+  {
+   "match": "^Notepad\\+\\+",
+   "product": "Notepad++",
+   "publisher": "Notepad++",
+   "category": "Development"
+  },
+  {
+   "match": "^Windows (Software Development Kit|SDK)\\b",
+   "product": "Windows SDK",
+   "publisher": "Microsoft",
+   "category": "Development"
+  },
+  {
+   "match": "^Cursor$",
+   "product": "Cursor",
+   "publisher": "Anysphere",
+   "category": "Development"
+  },
+  {
+   "match": "^Python Launcher\\b",
+   "product": "Python Launcher",
+   "publisher": "Python Software Foundation",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Python \\d",
+   "product": "Python",
+   "publisher": "Python Software Foundation",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Node\\.js\\b",
+   "product": "Node.js",
+   "publisher": "OpenJS Foundation",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft (\\.NET|ASP\\.NET|Windows Desktop Runtime)\\b",
+   "product": "Microsoft .NET",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^(?P<j>Eclipse Temurin|AdoptOpenJDK|Amazon Corretto|Azul Zulu|Microsoft Build of OpenJDK|Liberica JDK|OpenJDK)\\b",
+   "product": "{j}",
+   "publisher": "{publisher}",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Java(\\(TM\\))?( SE)?( Development Kit| Runtime Environment)?( \\d+)?( Update \\d+)?( \\(64-bit\\))?$|^Java \\d+ Update \\d+|^Java SE Development Kit\\b|^Java\\(TM\\)",
+   "product": "Oracle Java SE",
+   "publisher": "Oracle",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft Access database engine\\b",
+   "product": "Microsoft Access Database Engine",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft (ODBC|OLE DB) Driver\\b",
+   "product": "Microsoft SQL drivers",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Microsoft Silverlight\\b",
+   "product": "Microsoft Silverlight",
+   "publisher": "Microsoft",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Adobe Flash Player\\b",
+   "product": "Adobe Flash Player",
+   "publisher": "Adobe",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^Adobe AIR\\b",
+   "product": "Adobe AIR",
+   "publisher": "Adobe",
+   "category": "Runtime & framework"
+  },
+  {
+   "match": "^(Microsoft )?SQL Server Management Studio\\b",
+   "product": "SQL Server Management Studio",
+   "publisher": "Microsoft",
+   "category": "Database"
+  },
+  {
+   "match": "^Microsoft SQL Server\\b",
+   "product": "Microsoft SQL Server",
+   "publisher": "Microsoft",
+   "category": "Database"
+  },
+  {
+   "match": "^MySQL (?P<m>Server|Workbench|Shell|Router|Connector)\\b",
+   "product": "MySQL {m}",
+   "publisher": "Oracle",
+   "category": "Database"
+  },
+  {
+   "match": "^PostgreSQL\\b",
+   "product": "PostgreSQL",
+   "publisher": "PostgreSQL",
+   "category": "Database"
+  },
+  {
+   "match": "^pgAdmin\\b",
+   "product": "pgAdmin",
+   "publisher": "pgAdmin",
+   "category": "Database"
+  },
+  {
+   "match": "^MongoDB\\b",
+   "product": "MongoDB",
+   "publisher": "MongoDB",
+   "category": "Database"
+  },
+  {
+   "match": "^DBeaver\\b",
+   "product": "DBeaver",
+   "publisher": "DBeaver",
+   "category": "Database"
+  },
+  {
+   "match": "^Oracle (Database|Client|Instant Client)\\b",
+   "product": "Oracle Database",
+   "publisher": "Oracle",
+   "category": "Database"
+  },
+  {
+   "match": "^Azure Data Studio\\b",
+   "product": "Azure Data Studio",
+   "publisher": "Microsoft",
+   "category": "Database"
+  },
+  {
+   "match": "^MariaDB\\b",
+   "product": "MariaDB",
+   "publisher": "MariaDB",
+   "category": "Database"
+  },
+  {
+   "match": "^(Microsoft|Windows) Defender\\b",
+   "product": "Microsoft Defender",
+   "publisher": "Microsoft",
+   "category": "Security"
+  },
+  {
+   "match": "^CrowdStrike\\b|^Falcon Sensor\\b",
+   "product": "CrowdStrike Falcon",
+   "publisher": "CrowdStrike",
+   "category": "Security"
+  },
+  {
+   "match": "^Sophos\\b",
+   "product": "Sophos",
+   "publisher": "Sophos",
+   "category": "Security"
+  },
+  {
+   "match": "^(Symantec|Norton)\\b",
+   "product": "{0}",
+   "publisher": "Gen Digital",
+   "category": "Security"
+  },
+  {
+   "match": "^(McAfee|Trellix)\\b",
+   "product": "{0}",
+   "publisher": "{0}",
+   "category": "Security"
+  },
+  {
+   "match": "^ESET\\b",
+   "product": "ESET",
+   "publisher": "ESET",
+   "category": "Security"
+  },
+  {
+   "match": "^Kaspersky\\b",
+   "product": "Kaspersky",
+   "publisher": "Kaspersky",
+   "category": "Security"
+  },
+  {
+   "match": "^Bitdefender\\b",
+   "product": "Bitdefender",
+   "publisher": "Bitdefender",
+   "category": "Security"
+  },
+  {
+   "match": "^Trend Micro\\b",
+   "product": "Trend Micro",
+   "publisher": "Trend Micro",
+   "category": "Security"
+  },
+  {
+   "match": "^(SentinelOne|Sentinel Agent)\\b",
+   "product": "SentinelOne",
+   "publisher": "SentinelOne",
+   "category": "Security"
+  },
+  {
+   "match": "^Malwarebytes\\b",
+   "product": "Malwarebytes",
+   "publisher": "Malwarebytes",
+   "category": "Security"
+  },
+  {
+   "match": "^(Avast|AVG)\\b",
+   "product": "{0}",
+   "publisher": "Gen Digital",
+   "category": "Security"
+  },
+  {
+   "match": "^(Tenable )?Nessus\\b",
+   "product": "Tenable Nessus",
+   "publisher": "Tenable",
+   "category": "Security"
+  },
+  {
+   "match": "^Qualys Cloud (Security )?Agent\\b",
+   "product": "Qualys Cloud Agent",
+   "publisher": "Qualys",
+   "category": "Security"
+  },
+  {
+   "match": "^Rapid7 Insight Agent\\b",
+   "product": "Rapid7 Insight Agent",
+   "publisher": "Rapid7",
+   "category": "Security"
+  },
+  {
+   "match": "^Wazuh Agent\\b",
+   "product": "Wazuh Agent",
+   "publisher": "Wazuh",
+   "category": "Security"
+  },
+  {
+   "match": "^(KeePass|KeePassXC|1Password|Bitwarden|LastPass|Dashlane|Keeper)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Security"
+  },
+  {
+   "match": "^(Cisco (Secure Client|AnyConnect))\\b",
+   "product": "Cisco Secure Client",
+   "publisher": "Cisco",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^(Palo Alto Networks )?GlobalProtect\\b",
+   "product": "GlobalProtect",
+   "publisher": "Palo Alto Networks",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^FortiClient\\b",
+   "product": "FortiClient",
+   "publisher": "Fortinet",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^OpenVPN\\b",
+   "product": "OpenVPN",
+   "publisher": "OpenVPN",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^WireGuard\\b",
+   "product": "WireGuard",
+   "publisher": "WireGuard",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^(Zscaler|Netskope)\\b",
+   "product": "{0}",
+   "publisher": "{0}",
+   "category": "Networking & VPN"
+  },
+  {
+   "match": "^(NordVPN|ExpressVPN|Proton ?VPN|Surfshark|CyberGhost|Private Internet Access|Hotspot Shield|Windscribe|TunnelBear|Psiphon|Ultrasurf|Hola|Radmin VPN|Hamachi|LogMeIn Hamachi)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Consumer VPN & proxy"
+  },
+  {
+   "match": "^PuTTY\\b",
+   "product": "PuTTY",
+   "publisher": "Simon Tatham",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^WinSCP\\b",
+   "product": "WinSCP",
+   "publisher": "Martin Prikryl",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^FileZilla\\b",
+   "product": "FileZilla",
+   "publisher": "FileZilla",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^mRemoteNG\\b",
+   "product": "mRemoteNG",
+   "publisher": "mRemoteNG",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^MobaXterm\\b",
+   "product": "MobaXterm",
+   "publisher": "Mobatek",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Royal TS\\b",
+   "product": "Royal TS",
+   "publisher": "Royal Apps",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Remote Desktop Connection Manager\\b",
+   "product": "Remote Desktop Connection Manager",
+   "publisher": "Microsoft",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^(Microsoft )?Remote Desktop\\b|^Windows App$",
+   "product": "Microsoft Remote Desktop",
+   "publisher": "Microsoft",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Wireshark\\b",
+   "product": "Wireshark",
+   "publisher": "Wireshark Foundation",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Nmap\\b",
+   "product": "Nmap",
+   "publisher": "Nmap",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Advanced IP Scanner\\b",
+   "product": "Advanced IP Scanner",
+   "publisher": "Famatech",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^Angry IP Scanner\\b",
+   "product": "Angry IP Scanner",
+   "publisher": "Angry IP Scanner",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^(Sysinternals|Process Explorer|Process Monitor)\\b",
+   "product": "Sysinternals",
+   "publisher": "Microsoft",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^(Remote Server Administration Tools|RSAT)\\b",
+   "product": "RSAT",
+   "publisher": "Microsoft",
+   "category": "Admin tools"
+  },
+  {
+   "match": "^(Configuration Manager Client|Microsoft Endpoint Configuration Manager|System Center Configuration Manager)\\b",
+   "product": "Configuration Manager client",
+   "publisher": "Microsoft",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^Microsoft Intune Management Extension\\b",
+   "product": "Intune Management Extension",
+   "publisher": "Microsoft",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^ManageEngine\\b",
+   "product": "ManageEngine",
+   "publisher": "Zoho",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^Lansweeper\\b",
+   "product": "Lansweeper",
+   "publisher": "Lansweeper",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^(Ivanti|LANDESK)\\b",
+   "product": "Ivanti",
+   "publisher": "Ivanti",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^(N-able|SolarWinds)\\b",
+   "product": "{0}",
+   "publisher": "{0}",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^(Datto RMM|Atera|Kaseya|NinjaOne|NinjaRMM)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^(Splunk ?)?Universal ?Forwarder\\b",
+   "product": "Splunk Universal Forwarder",
+   "publisher": "Splunk",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^Zabbix Agent\\b",
+   "product": "Zabbix Agent",
+   "publisher": "Zabbix",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^Veeam\\b",
+   "product": "Veeam",
+   "publisher": "Veeam",
+   "category": "Management & monitoring"
+  },
+  {
+   "match": "^(Microsoft )?OneDrive\\b",
+   "product": "Microsoft OneDrive",
+   "publisher": "Microsoft",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^Dropbox\\b",
+   "product": "Dropbox",
+   "publisher": "Dropbox",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^(Google Drive|Backup and Sync from Google)\\b",
+   "product": "Google Drive",
+   "publisher": "Google",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^Box (Drive|Sync|Tools)\\b",
+   "product": "Box",
+   "publisher": "Box",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^iCloud\\b",
+   "product": "iCloud",
+   "publisher": "Apple",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^MEGA ?sync\\b|^MEGA$",
+   "product": "MEGA",
+   "publisher": "Mega Limited",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^pCloud\\b",
+   "product": "pCloud",
+   "publisher": "pCloud",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^Nextcloud\\b",
+   "product": "Nextcloud",
+   "publisher": "Nextcloud",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^ownCloud\\b",
+   "product": "ownCloud",
+   "publisher": "ownCloud",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^Egnyte\\b",
+   "product": "Egnyte",
+   "publisher": "Egnyte",
+   "category": "Cloud storage"
+  },
+  {
+   "match": "^(µ|u)Torrent\\b",
+   "product": "uTorrent",
+   "publisher": "BitTorrent",
+   "category": "File sharing & P2P"
+  },
+  {
+   "match": "^BitTorrent\\b",
+   "product": "BitTorrent",
+   "publisher": "BitTorrent",
+   "category": "File sharing & P2P"
+  },
+  {
+   "match": "^(qBittorrent|Vuze|Azureus|Deluge|Transmission|FrostWire|eMule|BitComet|Tixati|Shareaza|LimeWire|Soulseek)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "File sharing & P2P"
+  },
+  {
+   "match": "^Steam$",
+   "product": "Steam",
+   "publisher": "Valve",
+   "category": "Games"
+  },
+  {
+   "match": "^Epic Games Launcher\\b",
+   "product": "Epic Games Launcher",
+   "publisher": "Epic Games",
+   "category": "Games"
+  },
+  {
+   "match": "^Battle\\.net\\b",
+   "product": "Battle.net",
+   "publisher": "Blizzard",
+   "category": "Games"
+  },
+  {
+   "match": "^(Origin|EA app|EA Desktop)$",
+   "product": "EA app",
+   "publisher": "Electronic Arts",
+   "category": "Games"
+  },
+  {
+   "match": "^(Ubisoft Connect|Uplay)\\b",
+   "product": "Ubisoft Connect",
+   "publisher": "Ubisoft",
+   "category": "Games"
+  },
+  {
+   "match": "^GOG Galaxy\\b",
+   "product": "GOG Galaxy",
+   "publisher": "GOG",
+   "category": "Games"
+  },
+  {
+   "match": "^(Riot (Client|Vanguard)|League of Legends|VALORANT)\\b",
+   "product": "Riot Games",
+   "publisher": "Riot Games",
+   "category": "Games"
+  },
+  {
+   "match": "^Roblox\\b",
+   "product": "Roblox",
+   "publisher": "Roblox",
+   "category": "Games"
+  },
+  {
+   "match": "^Minecraft\\b",
+   "product": "Minecraft",
+   "publisher": "Mojang",
+   "category": "Games"
+  },
+  {
+   "match": "^VLC media player\\b",
+   "product": "VLC media player",
+   "publisher": "VideoLAN",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Adobe (?P<a>Photoshop|Illustrator|Premiere Pro|After Effects|InDesign|Lightroom|Creative Cloud|Media Encoder|Audition|XD|Bridge|Animate|Dreamweaver|Substance)\\b",
+   "product": "Adobe {a}",
+   "publisher": "Adobe",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^GIMP\\b",
+   "product": "GIMP",
+   "publisher": "GIMP",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Inkscape\\b",
+   "product": "Inkscape",
+   "publisher": "Inkscape",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Audacity\\b",
+   "product": "Audacity",
+   "publisher": "Audacity",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Spotify\\b",
+   "product": "Spotify",
+   "publisher": "Spotify",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^iTunes\\b",
+   "product": "iTunes",
+   "publisher": "Apple",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^K-Lite\\b",
+   "product": "K-Lite Codec Pack",
+   "publisher": "Codec Guide",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^OBS Studio\\b",
+   "product": "OBS Studio",
+   "publisher": "OBS Project",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^paint\\.net\\b",
+   "product": "Paint.NET",
+   "publisher": "dotPDN",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^(Snagit|Camtasia)\\b",
+   "product": "{0}",
+   "publisher": "TechSmith",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^(Greenshot|ShareX|Lightshot)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Blender\\b",
+   "product": "Blender",
+   "publisher": "Blender Foundation",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^HandBrake\\b",
+   "product": "HandBrake",
+   "publisher": "HandBrake",
+   "category": "Media & graphics"
+  },
+  {
+   "match": "^Autodesk (?P<a>AutoCAD|Revit|Inventor|3ds Max|Maya|Fusion|Navisworks|Civil 3D|DWG TrueView)\\b|^(?P<b>AutoCAD)\\b",
+   "product": "Autodesk {a}{b}",
+   "publisher": "Autodesk",
+   "category": "Engineering & design"
+  },
+  {
+   "match": "^(SOLIDWORKS|SketchUp|MATLAB|ANSYS|Rhino|ArcGIS|QGIS)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Engineering & design"
+  },
+  {
+   "match": "^VMware (Workstation|Player)\\b",
+   "product": "VMware Workstation",
+   "publisher": "VMware",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^VMware Horizon Client\\b",
+   "product": "VMware Horizon Client",
+   "publisher": "VMware",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^(Oracle )?VM VirtualBox\\b|^VirtualBox\\b",
+   "product": "VirtualBox",
+   "publisher": "Oracle",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^Citrix (Workspace|Receiver)\\b",
+   "product": "Citrix Workspace",
+   "publisher": "Citrix",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^Parallels\\b",
+   "product": "Parallels Desktop",
+   "publisher": "Parallels",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^Remote Desktop WebRTC\\b|^Azure Virtual Desktop\\b",
+   "product": "Azure Virtual Desktop",
+   "publisher": "Microsoft",
+   "category": "Virtualisation"
+  },
+  {
+   "match": "^7-Zip\\b",
+   "product": "7-Zip",
+   "publisher": "Igor Pavlov",
+   "category": "Utilities"
+  },
+  {
+   "match": "^WinRAR\\b",
+   "product": "WinRAR",
+   "publisher": "win.rar",
+   "category": "Utilities"
+  },
+  {
+   "match": "^WinZip\\b",
+   "product": "WinZip",
+   "publisher": "WinZip",
+   "category": "Utilities"
+  },
+  {
+   "match": "^PeaZip\\b",
+   "product": "PeaZip",
+   "publisher": "PeaZip",
+   "category": "Utilities"
+  },
+  {
+   "match": "^CCleaner\\b",
+   "product": "CCleaner",
+   "publisher": "Piriform",
+   "category": "Utilities"
+  },
+  {
+   "match": "^Everything\\b",
+   "product": "Everything",
+   "publisher": "voidtools",
+   "category": "Utilities"
+  },
+  {
+   "match": "^(Microsoft )?PowerToys\\b",
+   "product": "PowerToys",
+   "publisher": "Microsoft",
+   "category": "Utilities"
+  },
+  {
+   "match": "^(TreeSize|WinDirStat|Rufus|balenaEtcher|BgInfo)\\b",
+   "product": "{0}",
+   "publisher": "{publisher}",
+   "category": "Utilities"
+  },
+  {
+   "match": ".",
+   "product": "{title}",
+   "publisher": "Apple",
+   "category": "System component",
+   "publisher_match": "^apple$"
+  }
+ ]
+}

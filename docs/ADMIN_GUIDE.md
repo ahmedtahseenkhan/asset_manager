@@ -66,12 +66,33 @@ Administration → Notifications:
 1. Configure your **on-prem SMTP relay** (password stored encrypted) and use
    *Test* to confirm delivery.
 2. Enable the alert rules you want (contract renewals, asset warranties,
-   software license expiry, application license expiry) with thresholds and
-   recipients.
+   software license expiry, application license expiry, risky device changes,
+   OS end of support) with thresholds and recipients.
 
 Checks run daily at 08:00 UTC; each rule sends at most one digest per day.
 *Run checks now* triggers an immediate pass. Every send (or failure) is
 recorded in the on-page log.
+
+## 4a. End-of-life catalogue
+
+OS and software end-of-support dates come from a catalogue bundled with each
+release (`backend/lifecycle/eol_catalog.json`); nothing is fetched from the
+internet. Status (out of support / ending soon) is worked out against today's
+date, so it stays current without updates. Only new releases, or dates a vendor
+announces later, need a newer catalogue.
+
+- **Between releases:** Lifecycle → *Upload catalogue (JSON)* (admins). The file
+  is validated before use; a mistake is reported with the product and field. The
+  catalogue with the newest `published` date is used, so a release with a newer
+  bundled catalogue supersedes an older upload. To add your own products, copy
+  the bundled file, add entries, and raise `published`.
+- **Recalculate now** re-applies the catalogue to every device. This also runs
+  at startup, daily at 03:00 UTC, and for each device on each inventory report.
+- Apple publishes no end-of-support dates for macOS. The catalogue treats a
+  version as unsupported once the third newer version is released; versions
+  still within that window have no date.
+- The software catalogue (`backend/lifecycle/software_catalog.json`, product
+  names, vendors and categories) ships with releases only.
 
 ## 5. Backups
 

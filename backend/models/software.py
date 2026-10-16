@@ -14,7 +14,9 @@ class InstalledSoftware(Base):
     device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"),
                        nullable=False, index=True)
     name = Column(String(500), nullable=False, index=True)
-    normalized_name = Column(String(500), index=True)   # for SAM matching
+    normalized_name = Column(String(500), index=True)   # canonical product, for SAM matching
+    vendor = Column(String(255), index=True)            # normalised publisher
+    category = Column(String(64), index=True)           # software catalogue category
     version = Column(String(128))
     publisher = Column(String(255))
     install_date = Column(Date)

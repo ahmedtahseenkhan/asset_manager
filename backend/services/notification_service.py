@@ -165,12 +165,39 @@ class NotificationService:
                              .values(notified_at=datetime.now(timezone.utc)))
         return items, on_sent
 
+    @staticmethod
+    async def _os_eol_items(db: AsyncSession, days: int) -> List[str]:
+        """OS releases whose support ends within the window, with device counts.
+        Devices already unsupported are summarised in one line, not listed daily."""
+        from sqlalchemy import distinct, func
+        from backend.models.device import Device
+        from backend.models.lifecycle import DeviceLifecycle as L
+
+        today = date.today()
+        base = (select(func.count(distinct(L.device_id))).join(Device, Device.id == L.device_id)
+                .where(Device.status == "active", L.kind == "os"))
+        rows = (await db.execute(
+            select(L.title, L.eol, func.count(distinct(L.device_id)))
+            .join(Device, Device.id == L.device_id)
+            .where(Device.status == "active", L.kind == "os", L.eol >= today,
+                   L.eol <= today + timedelta(days=days))
+            .group_by(L.title, L.eol).order_by(L.eol, L.title))).all()
+        items = [f"- {title}: support ends {eol} ({(eol - today).days}d left) - {n} device{'s' if n != 1 else ''}"
+                 for title, eol, n in rows]
+        if items:
+            unsupported = (await db.scalar(base.where(L.eol < today))) or 0
+            if unsupported:
+                items.append(f"- {unsupported} device{'s' if unsupported != 1 else ''} already run an OS that is "
+                             f"out of support (see Lifecycle)")
+        return items
+
     _COLLECTORS = {
         "contract_expiry": ("Contract renewals due", _contract_items),
         "warranty_expiry": ("Asset warranties expiring", _warranty_items),
         "entitlement_expiry": ("Software licenses expiring", _entitlement_items),
         "license_expiry": ("Application license expiring", _license_items),
         "security_changes": ("Risky device changes", _security_change_items),
+        "os_end_of_support": ("Operating systems reaching end of support", _os_eol_items),
     }
 
     @staticmethod

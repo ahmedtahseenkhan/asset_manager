@@ -1,0 +1,369 @@
+{
+  "schema": 1,
+  "version": "2026.10.16",
+  "published": "2026-10-16",
+  "notes": [
+    "eol: the date the vendor stops shipping security updates under standard terms. null = still supported, no date announced.",
+    "support_end: end of mainstream/active support where the vendor distinguishes it. extended: paid extended support (ESU, ESM, ELS), for information only.",
+    "Windows client cycles: eol applies to Home/Pro/Pro Education/Pro for Workstations, eol_enterprise to Enterprise/Education/IoT Enterprise.",
+    "Apple publishes no end-of-support dates: a macOS version is treated as unsupported from the release of the third newer version.",
+    "Canonical publishes months only: Ubuntu dates use the last day of the month."
+  ],
+  "products": [
+    {
+      "id": "windows-11", "name": "Windows 11", "vendor": "Microsoft", "kind": "os", "match": "windows",
+      "source": "https://learn.microsoft.com/lifecycle/products/windows-11-home-and-pro",
+      "cycles": [
+        {"cycle": "25H2", "build": 26200, "eol": "2027-10-12", "eol_enterprise": "2028-10-10"},
+        {"cycle": "24H2", "build": 26100, "eol": "2026-10-13", "eol_enterprise": "2027-10-12"},
+        {"cycle": "LTSC 2024", "build": 26100, "edition": "ltsc", "eol": "2029-10-09", "eol_iot": "2034-10-10"},
+        {"cycle": "23H2", "build": 22631, "eol": "2025-11-11", "eol_enterprise": "2026-11-10"},
+        {"cycle": "22H2", "build": 22621, "eol": "2024-10-08", "eol_enterprise": "2025-10-14"},
+        {"cycle": "21H2", "build": 22000, "eol": "2023-10-10", "eol_enterprise": "2024-10-08"}
+      ]
+    },
+    {
+      "id": "windows-10", "name": "Windows 10", "vendor": "Microsoft", "kind": "os", "match": "windows",
+      "source": "https://learn.microsoft.com/lifecycle/products/windows-10-home-and-pro",
+      "cycles": [
+        {"cycle": "22H2", "build": 19045, "eol": "2025-10-14", "extended": "2028-10-10"},
+        {"cycle": "LTSC 2021", "build": 19044, "edition": "ltsc", "eol": "2027-01-12", "eol_iot": "2032-01-13"},
+        {"cycle": "21H2", "build": 19044, "eol": "2023-06-13", "eol_enterprise": "2024-06-11"},
+        {"cycle": "21H1", "build": 19043, "eol": "2022-12-13"},
+        {"cycle": "20H2", "build": 19042, "eol": "2022-05-10", "eol_enterprise": "2023-05-09"},
+        {"cycle": "2004", "build": 19041, "eol": "2021-12-14"},
+        {"cycle": "1909", "build": 18363, "eol": "2021-05-11", "eol_enterprise": "2022-05-10"},
+        {"cycle": "1903", "build": 18362, "eol": "2020-12-08"},
+        {"cycle": "LTSC 2019", "build": 17763, "edition": "ltsc", "support_end": "2024-01-09", "eol": "2029-01-09"},
+        {"cycle": "1809", "build": 17763, "eol": "2020-11-10", "eol_enterprise": "2021-05-11"},
+        {"cycle": "1803", "build": 17134, "eol": "2019-11-12", "eol_enterprise": "2021-05-11"},
+        {"cycle": "1709", "build": 16299, "eol": "2019-04-09", "eol_enterprise": "2020-10-13"},
+        {"cycle": "1703", "build": 15063, "eol": "2018-10-09", "eol_enterprise": "2019-10-08"},
+        {"cycle": "LTSB 2016", "build": 14393, "edition": "ltsc", "support_end": "2021-10-12", "eol": "2026-10-13"},
+        {"cycle": "1607", "build": 14393, "eol": "2018-04-10", "eol_enterprise": "2019-04-09"},
+        {"cycle": "1511", "build": 10586, "eol": "2017-10-10", "eol_enterprise": "2018-04-10"},
+        {"cycle": "LTSB 2015", "build": 10240, "edition": "ltsc", "eol": "2025-10-14"},
+        {"cycle": "1507", "build": 10240, "eol": "2017-05-09"}
+      ]
+    },
+    {
+      "id": "windows-legacy", "name": "Windows", "vendor": "Microsoft", "kind": "os", "match": "windows",
+      "source": "https://learn.microsoft.com/lifecycle/products/",
+      "cycles": [
+        {"cycle": "8.1", "label": "Windows 8.1", "os_regex": "Windows 8\\.1", "build": 9600, "eol": "2023-01-10"},
+        {"cycle": "8", "label": "Windows 8", "os_regex": "Windows 8(?!\\.)", "build": 9200, "eol": "2016-01-12"},
+        {"cycle": "7", "label": "Windows 7", "os_regex": "Windows 7", "build": 7601, "eol": "2020-01-14", "extended": "2023-01-10"},
+        {"cycle": "Vista", "label": "Windows Vista", "os_regex": "Windows Vista", "build": 6002, "eol": "2017-04-11"},
+        {"cycle": "XP", "label": "Windows XP", "os_regex": "Windows XP", "build": 2600, "eol": "2014-04-08"}
+      ]
+    },
+    {
+      "id": "windows-server", "name": "Windows Server", "vendor": "Microsoft", "kind": "os", "match": "windows",
+      "source": "https://learn.microsoft.com/lifecycle/products/windows-server-2022",
+      "cycles": [
+        {"cycle": "2025", "server": true, "os_regex": "Server 2025", "build": 26100, "support_end": "2029-10-09", "eol": "2034-10-10"},
+        {"cycle": "2022", "server": true, "os_regex": "Server 2022", "build": 20348, "support_end": "2026-10-13", "eol": "2031-10-14"},
+        {"cycle": "2019", "server": true, "os_regex": "Server 2019", "build": 17763, "support_end": "2024-01-09", "eol": "2029-01-09"},
+        {"cycle": "2016", "server": true, "os_regex": "Server 2016", "build": 14393, "support_end": "2022-01-11", "eol": "2027-01-12"},
+        {"cycle": "2012 R2", "server": true, "os_regex": "Server 2012 R2", "build": 9600, "support_end": "2018-10-09", "eol": "2023-10-10", "extended": "2026-10-13"},
+        {"cycle": "2012", "server": true, "os_regex": "Server 2012(?! R2)", "build": 9200, "support_end": "2018-10-09", "eol": "2023-10-10", "extended": "2026-10-13"},
+        {"cycle": "2008 R2", "server": true, "os_regex": "Server 2008 R2", "build": 7601, "support_end": "2015-01-13", "eol": "2020-01-14", "extended": "2023-01-10"},
+        {"cycle": "2008", "server": true, "os_regex": "Server 2008(?! R2)", "build": 6003, "support_end": "2015-01-13", "eol": "2020-01-14", "extended": "2023-01-10"},
+        {"cycle": "2003", "server": true, "os_regex": "Server 2003", "build": 3790, "eol": "2015-07-14"}
+      ]
+    },
+    {
+      "id": "macos", "name": "macOS", "vendor": "Apple", "kind": "os", "match": "os-version",
+      "os_regex": "^(mac ?os|os x|mac os x)\\b",
+      "source": "https://support.apple.com/en-us/100100",
+      "cycles": [
+        {"cycle": "26", "label": "macOS 26 Tahoe", "eol": null},
+        {"cycle": "15", "label": "macOS 15 Sequoia", "eol": null},
+        {"cycle": "14", "label": "macOS 14 Sonoma", "eol": null},
+        {"cycle": "13", "label": "macOS 13 Ventura", "eol": "2025-09-15"},
+        {"cycle": "12", "label": "macOS 12 Monterey", "eol": "2024-09-16"},
+        {"cycle": "11", "label": "macOS 11 Big Sur", "eol": "2023-09-26"},
+        {"cycle": "10.15", "label": "macOS 10.15 Catalina", "eol": "2022-10-24"},
+        {"cycle": "10.14", "label": "macOS 10.14 Mojave", "eol": "2021-10-25"},
+        {"cycle": "10.13", "label": "macOS 10.13 High Sierra", "eol": "2020-11-12"}
+      ]
+    },
+    {
+      "id": "ubuntu", "name": "Ubuntu", "vendor": "Canonical", "kind": "os", "match": "os-version",
+      "os_regex": "^ubuntu\\b",
+      "source": "https://ubuntu.com/about/release-cycle",
+      "cycles": [
+        {"cycle": "26.04", "label": "Ubuntu 26.04 LTS", "eol": "2031-04-30", "extended": "2036-04-30"},
+        {"cycle": "25.10", "eol": "2026-07-31"},
+        {"cycle": "25.04", "eol": "2026-01-31"},
+        {"cycle": "24.10", "eol": "2025-07-31"},
+        {"cycle": "24.04", "label": "Ubuntu 24.04 LTS", "eol": "2029-04-30", "extended": "2034-04-30"},
+        {"cycle": "23.10", "eol": "2024-07-31"},
+        {"cycle": "23.04", "eol": "2024-01-31"},
+        {"cycle": "22.04", "label": "Ubuntu 22.04 LTS", "eol": "2027-04-30", "extended": "2032-04-30"},
+        {"cycle": "20.04", "label": "Ubuntu 20.04 LTS", "eol": "2025-05-31", "extended": "2030-04-30"},
+        {"cycle": "18.04", "label": "Ubuntu 18.04 LTS", "eol": "2023-05-31", "extended": "2028-04-30"},
+        {"cycle": "16.04", "label": "Ubuntu 16.04 LTS", "eol": "2021-04-30", "extended": "2026-04-30"},
+        {"cycle": "14.04", "label": "Ubuntu 14.04 LTS", "eol": "2019-04-30", "extended": "2024-04-30"}
+      ]
+    },
+    {
+      "id": "rhel", "name": "Red Hat Enterprise Linux", "vendor": "Red Hat", "kind": "os", "match": "os-version",
+      "os_regex": "^(red hat enterprise linux|rhel)\\b",
+      "source": "https://access.redhat.com/support/policy/updates/errata",
+      "cycles": [
+        {"cycle": "10", "eol": "2035-05-31"},
+        {"cycle": "9", "eol": "2032-05-31"},
+        {"cycle": "8", "eol": "2029-05-31", "extended": "2032-05-31"},
+        {"cycle": "7", "eol": "2024-06-30", "extended": "2028-06-30"},
+        {"cycle": "6", "eol": "2020-11-30", "extended": "2024-06-30"}
+      ]
+    },
+    {
+      "id": "centos-stream", "name": "CentOS Stream", "vendor": "CentOS Project", "kind": "os", "match": "os-version",
+      "os_regex": "^centos stream\\b",
+      "source": "https://www.centos.org/centos-stream/",
+      "cycles": [
+        {"cycle": "10", "eol": null},
+        {"cycle": "9", "eol": "2027-05-31"},
+        {"cycle": "8", "eol": "2024-05-31"}
+      ]
+    },
+    {
+      "id": "centos", "name": "CentOS Linux", "vendor": "CentOS Project", "kind": "os", "match": "os-version",
+      "os_regex": "^centos(?! stream)\\b",
+      "source": "https://www.centos.org/centos-linux-eol/",
+      "cycles": [
+        {"cycle": "8", "eol": "2021-12-31"},
+        {"cycle": "7", "eol": "2024-06-30"},
+        {"cycle": "6", "eol": "2020-11-30"}
+      ]
+    },
+    {
+      "id": "rocky", "name": "Rocky Linux", "vendor": "Rocky Enterprise Software Foundation", "kind": "os", "match": "os-version",
+      "os_regex": "^rocky\\b",
+      "source": "https://wiki.rockylinux.org/rocky/version/",
+      "cycles": [
+        {"cycle": "10", "eol": "2035-05-31"},
+        {"cycle": "9", "eol": "2032-05-31"},
+        {"cycle": "8", "eol": "2029-05-31"}
+      ]
+    },
+    {
+      "id": "almalinux", "name": "AlmaLinux", "vendor": "AlmaLinux OS Foundation", "kind": "os", "match": "os-version",
+      "os_regex": "^alma ?linux\\b",
+      "source": "https://wiki.almalinux.org/release-notes/",
+      "cycles": [
+        {"cycle": "10", "eol": "2035-05-31"},
+        {"cycle": "9", "eol": "2032-05-31"},
+        {"cycle": "8", "eol": "2029-05-31"}
+      ]
+    },
+    {
+      "id": "debian", "name": "Debian", "vendor": "Debian", "kind": "os", "match": "os-version",
+      "os_regex": "^debian\\b",
+      "source": "https://wiki.debian.org/LTS",
+      "cycles": [
+        {"cycle": "13", "label": "Debian 13 trixie", "eol": "2030-06-30"},
+        {"cycle": "12", "label": "Debian 12 bookworm", "support_end": "2026-06-10", "eol": "2028-06-30"},
+        {"cycle": "11", "label": "Debian 11 bullseye", "support_end": "2024-08-14", "eol": "2026-08-31"},
+        {"cycle": "10", "label": "Debian 10 buster", "support_end": "2022-09-10", "eol": "2024-06-30"},
+        {"cycle": "9", "label": "Debian 9 stretch", "eol": "2022-06-30"}
+      ]
+    },
+
+    {
+      "id": "ms-office", "name": "Microsoft Office", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft Office\\b(?!.*\\b365\\b)(?!.*(?:Interop|Viewer|Runtime)).*?\\b(?P<cycle>2007|2010|2013|2016|2019|2021|2024)\\b",
+      "source": "https://learn.microsoft.com/lifecycle/end-of-support/end-of-support-2025",
+      "cycles": [
+        {"cycle": "2024", "eol": "2029-10-09"},
+        {"cycle": "2021", "eol": "2026-10-13"},
+        {"cycle": "2019", "eol": "2025-10-14"},
+        {"cycle": "2016", "eol": "2025-10-14"},
+        {"cycle": "2013", "eol": "2023-04-11"},
+        {"cycle": "2010", "eol": "2020-10-13"},
+        {"cycle": "2007", "eol": "2017-10-10"}
+      ]
+    },
+    {
+      "id": "ms-visio", "name": "Microsoft Visio", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft (?:Office )?Visio\\b(?!.*\\b365\\b)(?!.*Viewer).*?\\b(?P<cycle>2010|2013|2016|2019|2021|2024)\\b",
+      "source": "https://learn.microsoft.com/lifecycle/products/?terms=visio",
+      "cycles": [
+        {"cycle": "2024", "eol": "2029-10-09"},
+        {"cycle": "2021", "eol": "2026-10-13"},
+        {"cycle": "2019", "eol": "2025-10-14"},
+        {"cycle": "2016", "eol": "2025-10-14"},
+        {"cycle": "2013", "eol": "2023-04-11"},
+        {"cycle": "2010", "eol": "2020-10-13"}
+      ]
+    },
+    {
+      "id": "ms-project", "name": "Microsoft Project", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft (?:Office )?Project\\b(?!.*\\b365\\b)(?!.*Server).*?\\b(?P<cycle>2010|2013|2016|2019|2021|2024)\\b",
+      "source": "https://learn.microsoft.com/lifecycle/products/?terms=project",
+      "cycles": [
+        {"cycle": "2024", "eol": "2029-10-09"},
+        {"cycle": "2021", "eol": "2026-10-13"},
+        {"cycle": "2019", "eol": "2025-10-14"},
+        {"cycle": "2016", "eol": "2025-10-14"},
+        {"cycle": "2013", "eol": "2023-04-11"},
+        {"cycle": "2010", "eol": "2020-10-13"}
+      ]
+    },
+    {
+      "id": "sql-server", "name": "Microsoft SQL Server", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft SQL Server (?P<cycle>2005|2008 R2|2008|2012|2014|2016|2017|2019|2022|2025)(?: \\((?:64|32)-bit\\))?$",
+      "source": "https://learn.microsoft.com/lifecycle/products/?terms=sql%20server",
+      "cycles": [
+        {"cycle": "2025", "eol": null},
+        {"cycle": "2022", "support_end": "2028-01-11", "eol": "2033-01-11"},
+        {"cycle": "2019", "support_end": "2025-02-28", "eol": "2030-01-08"},
+        {"cycle": "2017", "support_end": "2022-10-11", "eol": "2027-10-12"},
+        {"cycle": "2016", "support_end": "2021-07-13", "eol": "2026-07-14"},
+        {"cycle": "2014", "support_end": "2019-07-09", "eol": "2024-07-09"},
+        {"cycle": "2012", "eol": "2022-07-12"},
+        {"cycle": "2008 R2", "eol": "2019-07-09"},
+        {"cycle": "2008", "eol": "2019-07-09"},
+        {"cycle": "2005", "eol": "2016-04-12"}
+      ]
+    },
+    {
+      "id": "exchange-server", "name": "Microsoft Exchange Server", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft Exchange Server (?P<cycle>2007|2010|2013|2016|2019)\\b",
+      "source": "https://learn.microsoft.com/lifecycle/products/exchange-server-2019",
+      "cycles": [
+        {"cycle": "2019", "eol": "2025-10-14"},
+        {"cycle": "2016", "eol": "2025-10-14"},
+        {"cycle": "2013", "eol": "2023-04-11"},
+        {"cycle": "2010", "eol": "2020-10-13"},
+        {"cycle": "2007", "eol": "2017-04-11"}
+      ]
+    },
+    {
+      "id": "sharepoint-server", "name": "Microsoft SharePoint Server", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft SharePoint (?:Server|Foundation) (?P<cycle>2010|2013|2016|2019)\\b",
+      "source": "https://learn.microsoft.com/lifecycle/products/sharepoint-server-2019",
+      "cycles": [
+        {"cycle": "2019", "eol": "2026-07-14"},
+        {"cycle": "2016", "eol": "2026-07-14"},
+        {"cycle": "2013", "eol": "2023-04-11"},
+        {"cycle": "2010", "eol": "2021-04-13"}
+      ]
+    },
+    {
+      "id": "visual-studio", "name": "Microsoft Visual Studio", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^(?:Microsoft )?Visual Studio (?:(?:Community|Professional|Enterprise|Build Tools|Express|Ultimate|Premium|Test Professional) )?(?P<cycle>2010|2012|2013|2015|2017|2019|2022)\\b(?!.*Tools for Office)",
+      "source": "https://learn.microsoft.com/visualstudio/productinfo/vs-servicing",
+      "cycles": [
+        {"cycle": "2022", "eol": "2032-01-13"},
+        {"cycle": "2019", "eol": "2029-04-10"},
+        {"cycle": "2017", "eol": "2027-04-13"},
+        {"cycle": "2015", "eol": "2025-10-14"},
+        {"cycle": "2013", "eol": "2024-04-09"},
+        {"cycle": "2012", "eol": "2023-01-10"},
+        {"cycle": "2010", "eol": "2020-07-14"}
+      ]
+    },
+    {
+      "id": "dotnet", "name": ".NET", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft (?:\\.NET(?: Core)?|Windows Desktop|ASP\\.NET Core)\\b(?!.*\\.NET Framework).*?\\b(?P<cycle>\\d{1,2}\\.\\d)\\.\\d+",
+      "source": "https://dotnet.microsoft.com/platform/support/policy/dotnet-core",
+      "cycles": [
+        {"cycle": "10.0", "eol": null},
+        {"cycle": "9.0", "eol": "2026-11-10"},
+        {"cycle": "8.0", "eol": "2026-11-10"},
+        {"cycle": "7.0", "eol": "2024-05-14"},
+        {"cycle": "6.0", "eol": "2024-11-12"},
+        {"cycle": "5.0", "eol": "2022-05-10"},
+        {"cycle": "3.1", "eol": "2022-12-13"},
+        {"cycle": "2.1", "eol": "2021-08-21"}
+      ]
+    },
+    {
+      "id": "python", "name": "Python", "vendor": "Python Software Foundation", "kind": "software", "match": "software",
+      "name_regex": "^Python (?P<cycle>\\d\\.\\d+)\\.\\d+",
+      "source": "https://devguide.python.org/versions/",
+      "cycles": [
+        {"cycle": "3.14", "eol": "2030-10-31"},
+        {"cycle": "3.13", "eol": "2029-10-31"},
+        {"cycle": "3.12", "eol": "2028-10-31"},
+        {"cycle": "3.11", "eol": "2027-10-31"},
+        {"cycle": "3.10", "eol": "2026-10-31"},
+        {"cycle": "3.9", "eol": "2025-10-31"},
+        {"cycle": "3.8", "eol": "2024-10-07"},
+        {"cycle": "3.7", "eol": "2023-06-27"},
+        {"cycle": "3.6", "eol": "2021-12-23"},
+        {"cycle": "2.7", "eol": "2020-01-01"}
+      ]
+    },
+    {
+      "id": "nodejs", "name": "Node.js", "vendor": "OpenJS Foundation", "kind": "software", "match": "software",
+      "name_regex": "^Node\\.js$", "version_regex": "^v?(?P<cycle>\\d+)\\.",
+      "source": "https://nodejs.org/en/about/previous-releases",
+      "cycles": [
+        {"cycle": "24", "eol": "2028-04-30"},
+        {"cycle": "23", "eol": "2025-06-01"},
+        {"cycle": "22", "eol": "2027-04-30"},
+        {"cycle": "21", "eol": "2024-06-01"},
+        {"cycle": "20", "eol": "2026-04-30"},
+        {"cycle": "19", "eol": "2023-06-01"},
+        {"cycle": "18", "eol": "2025-04-30"},
+        {"cycle": "16", "eol": "2023-09-11"},
+        {"cycle": "14", "eol": "2023-04-30"},
+        {"cycle": "12", "eol": "2022-04-30"}
+      ]
+    },
+    {
+      "id": "mysql", "name": "MySQL Server", "vendor": "Oracle", "kind": "software", "match": "software",
+      "name_regex": "^MySQL Server (?P<cycle>\\d+\\.\\d+)\\b",
+      "source": "https://www.oracle.com/support/lifetime-support/",
+      "cycles": [
+        {"cycle": "8.4", "eol": "2032-04-30"},
+        {"cycle": "8.0", "eol": "2026-04-30"},
+        {"cycle": "5.7", "eol": "2023-10-31"},
+        {"cycle": "5.6", "eol": "2021-02-28"}
+      ]
+    },
+    {
+      "id": "postgresql", "name": "PostgreSQL", "vendor": "PostgreSQL Global Development Group", "kind": "software", "match": "software",
+      "name_regex": "^PostgreSQL (?P<cycle>\\d+)\\b",
+      "source": "https://www.postgresql.org/support/versioning/",
+      "cycles": [
+        {"cycle": "18", "eol": "2030-11-14"},
+        {"cycle": "17", "eol": "2029-11-08"},
+        {"cycle": "16", "eol": "2028-11-09"},
+        {"cycle": "15", "eol": "2027-11-11"},
+        {"cycle": "14", "eol": "2026-11-12"},
+        {"cycle": "13", "eol": "2025-11-13"},
+        {"cycle": "12", "eol": "2024-11-21"},
+        {"cycle": "11", "eol": "2023-11-09"}
+      ]
+    },
+    {
+      "id": "adobe-acrobat-classic", "name": "Adobe Acrobat (classic)", "vendor": "Adobe", "kind": "software", "match": "software",
+      "name_regex": "^Adobe (?:Acrobat|Reader)\\b.*?\\b(?P<cycle>X|XI|2015|2017|2020)\\b",
+      "source": "https://helpx.adobe.com/support/programs/eol-matrix.html",
+      "cycles": [
+        {"cycle": "2020", "eol": "2025-11-30"},
+        {"cycle": "2017", "eol": "2022-06-06"},
+        {"cycle": "2015", "eol": "2020-04-07"},
+        {"cycle": "XI", "eol": "2017-10-15"},
+        {"cycle": "X", "eol": "2015-11-15"}
+      ]
+    },
+    {
+      "id": "adobe-flash", "name": "Adobe Flash Player", "vendor": "Adobe", "kind": "software", "match": "software",
+      "name_regex": "^Adobe Flash Player\\b",
+      "source": "https://www.adobe.com/products/flashplayer/end-of-life.html",
+      "cycles": [{"cycle": "*", "label": "Adobe Flash Player", "eol": "2020-12-31"}]
+    },
+    {
+      "id": "silverlight", "name": "Microsoft Silverlight", "vendor": "Microsoft", "kind": "software", "match": "software",
+      "name_regex": "^Microsoft Silverlight\\b",
+      "source": "https://learn.microsoft.com/lifecycle/products/silverlight-5",
+      "cycles": [{"cycle": "*", "label": "Microsoft Silverlight", "eol": "2021-10-12"}]
+    }
+  ]
+}

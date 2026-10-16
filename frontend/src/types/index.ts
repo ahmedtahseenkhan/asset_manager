@@ -561,3 +561,44 @@ export interface DeviceVirtualization {
   guests: VmGuest[];
   totals: { guests: number; running: number; vcpus_running: number; memory_gb_running: number };
 }
+
+// ── Lifecycle (end of life, warranty) ───────────────────
+export type EolStatus = 'unsupported' | 'ending_soon' | 'supported';
+export interface LifecycleItem {
+  kind: 'os' | 'software'; product_id: string; product: string; cycle: string; title: string;
+  eol: string | null; support_end: string | null; extended: string | null; detail: string | null;
+  status: EolStatus; days_left: number | null;
+}
+export interface DeviceWarranty {
+  asset_id: number; asset_tag: string; warranty_end: string | null; purchase_date: string | null;
+  status: 'expired' | 'ending_soon' | 'active' | null;
+}
+export interface DeviceLifecycleInfo { os: LifecycleItem | null; software: LifecycleItem[]; warranty: DeviceWarranty | null }
+export interface LifecycleGroup {
+  product_id: string; product: string; cycle: string; title: string; eol: string | null; extended: string | null;
+  devices: number; status: EolStatus; days_left: number | null;
+}
+export interface LifecycleCatalogInfo {
+  version: string; published: string; origin: 'bundled' | 'uploaded'; bundled_version: string; products: number;
+  last_upload: { version: string; published: string; uploaded_at: string } | null;
+}
+export interface LifecycleSummary {
+  counts: {
+    active_devices: number; os_identified: number; os_unidentified: number; os_unsupported: number;
+    os_ending_soon: number; software_unsupported_devices: number; warranty_expired: number;
+    warranty_ending_soon: number; warranty_unknown: number;
+  };
+  ending_soon_days: number; warranty_soon_days: number;
+  os: LifecycleGroup[]; software: LifecycleGroup[]; catalog: LifecycleCatalogInfo;
+}
+export interface LifecycleDeviceRow {
+  device_id: number; hostname: string | null; last_seen: string | null; title: string; detail: string | null; eol: string | null;
+}
+export interface WarrantyImportResult {
+  rows: number; updated: number; unchanged: number;
+  device_only: { serial: string; device_id: number; hostname: string | null }[]; device_only_count: number;
+  not_found: string[]; not_found_count: number; errors: { row: number; message: string }[];
+}
+export interface SoftwareCatalogInfo { version: string; categories: string[]; hidden_by_default: string[] }
+export interface SoftwareProduct { product: string; installs: number; copies: number; vendor: string | null; category: string | null }
+

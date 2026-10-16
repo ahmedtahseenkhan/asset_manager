@@ -27,6 +27,15 @@ async def daily_notifications():
         logger.info("Daily notification run: %s", summary)
 
 
+async def daily_lifecycle():
+    # End-of-life status and software categories: picks up devices only
+    # connectors know, and keeps up with an uploaded catalogue.
+    from backend.services.lifecycle_service import LifecycleService
+    async for session in get_db():
+        await LifecycleService.load_catalog(session)
+        await LifecycleService.refresh_all(session)
+
+
 class SchedulerService:
     def __init__(self):
         self.scheduler = AsyncIOScheduler(jobstores=jobstores)
@@ -38,6 +47,14 @@ class SchedulerService:
             trigger="cron",
             hour=2, minute=0,
             id="daily_retention",
+            replace_existing=True,
+        )
+        # Daily end-of-life / software catalogue refresh at 03:00 UTC
+        self.scheduler.add_job(
+            daily_lifecycle,
+            trigger="cron",
+            hour=3, minute=0,
+            id="daily_lifecycle",
             replace_existing=True,
         )
         # Daily expiry alerts at 08:00 UTC

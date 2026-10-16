@@ -15,6 +15,7 @@ const RULE_LABELS: Record<string, { title: string; hint: string; noThreshold?: b
   entitlement_expiry: { title: 'Software licenses',   hint: 'Entitlements expiring within the threshold' },
   license_expiry:     { title: 'Application license', hint: 'This product\'s own license file' },
   security_changes:   { title: 'Risky device changes', hint: 'New local admins, antivirus, firewall or encryption turned off — since the last email', noThreshold: true },
+  os_end_of_support:  { title: 'OS end of support',   hint: 'Devices whose operating system stops getting security updates within the threshold' },
 };
 
 interface SmtpForm {

@@ -21,6 +21,7 @@ from backend.models.ssh_host_key import SshHostKey
 from backend.models.saved_report import SavedReport
 from backend.models.topology import NetworkPort, NetworkNeighbor, MacLocation, ArpEntry
 from backend.models.virtualization import VmPlacement
+from backend.models.lifecycle import DeviceLifecycle, LifecycleCatalog
 from backend.models.inventory import (
     DeviceInventory, DevicePatch, DeviceService, DeviceLocalAccount, DeviceAntivirus,
     DeviceVolume, DeviceNetworkAdapter, DeviceMonitor, DevicePrinter, DeviceChange,

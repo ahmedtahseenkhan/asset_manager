@@ -24,13 +24,15 @@ class SAMService:
                 InstalledSoftware.normalized_name,
                 func.count(func.distinct(InstalledSoftware.device_id)).label("installs"),
                 func.count(InstalledSoftware.id).label("copies"),
+                func.max(InstalledSoftware.vendor), func.max(InstalledSoftware.category),
             )
             .where(InstalledSoftware.normalized_name.isnot(None),
                    InstalledSoftware.normalized_name != "")
             .group_by(InstalledSoftware.normalized_name)
             .order_by(func.count(func.distinct(InstalledSoftware.device_id)).desc())
         )).all()
-        return [{"product": r[0], "installs": r[1], "copies": r[2]} for r in rows]
+        return [{"product": r[0], "installs": r[1], "copies": r[2], "vendor": r[3], "category": r[4]}
+                for r in rows]
 
     @staticmethod
     async def _installs_for(db: AsyncSession, product: str) -> int:

@@ -182,12 +182,60 @@ or no inventory for 7+ days. Each tile opens the matching device list.
   - `over-deployed` — more installs than seats (the **Gap** column shows the
     true-up shortfall; the summary totals it)
   - `under-utilized` — spare seats you're paying for
-- **Discovered Software** — every product found across the fleet with an install
-  count. Use it to spot unlicensed or unwanted software.
+- **Discovered Software** — every product found across the fleet with its
+  vendor, category and install count. Installed titles are normalised with the
+  bundled software catalogue: "Microsoft Office Professional Plus 2016" and
+  "Microsoft Office Proofing Tools 2016" both count as *Microsoft Office*, and
+  "Google LLC" / "Google Inc." are one vendor. Categories include Browser,
+  Office & productivity, Communication, Remote access, Development, Database,
+  Security, File sharing & P2P, Games and Consumer VPN & proxy. Drivers, OEM
+  utilities, updates and runtimes are hidden by default (tick *Show system
+  components & runtimes*). **Reports → Library → Potentially unwanted software**
+  lists remote-access tools, torrent clients, games and consumer VPNs per device.
 
 **Workflow:** add entitlements under **Entitlements** with a `product` name that
 matches what's installed (e.g. "Microsoft 365", "Zoom"), deploy agents, then read
 the position. Over-deployed rows are your audit/true-up risk.
+
+## 2b. Lifecycle (end of support and warranties)
+
+The **Lifecycle** page shows which devices run an operating system or software
+version that no longer gets security updates, or will stop within 6 months, and
+which hardware warranties have expired.
+
+- **Operating systems** are identified from the agent or credentialed scan, or,
+  for computers only Active Directory knows, from AD's OS name and version.
+  Windows is matched by build and edition (Home/Pro and Enterprise/Education
+  have different dates; LTSC and IoT are recognised), Windows Server, macOS,
+  Ubuntu, Debian, RHEL, CentOS, Rocky and AlmaLinux by version. Click a release
+  to list its devices. Devices without any OS version (e.g. found only by a ping
+  sweep) are counted as *not identified*.
+- **Software** past or near end of support: Office, Visio, Project, SQL Server,
+  Exchange, SharePoint, Visual Studio, .NET, Python, Node.js, MySQL,
+  PostgreSQL, Acrobat (classic), Flash and Silverlight.
+- Every device page has a **Lifecycle** card (OS support, the linked asset's
+  warranty, and unsupported software), and the dashboard has an **OS out of
+  support** tile.
+- **Reports → Library → Lifecycle**: unsupported OS, OS support ending in 6
+  months, devices by OS release, unsupported software, software ending soon,
+  devices with an expired warranty. Device reports gain *OS release*, *OS end of
+  support*, *OS support* and *Warranty end* columns.
+- **Notifications → OS end of support** emails a daily digest of OS releases
+  whose support ends within the threshold, with device counts.
+
+**Warranty dates.** Import a CSV on the Lifecycle page: an export from Dell
+TechDirect, Lenovo or HP, from your reseller, or a sheet you keep. Rows are
+matched to assets by serial number (or asset tag); headers such as *Service
+Tag*, *Serial Number*, *Warranty End Date*, *End Date* and *Ship Date* are
+recognised, and with several lines per serial the latest end date wins. Choose
+whether dates are written day-first (31/12/2026) or month-first (12/31/2026);
+ISO dates and month names always work. Serials that belong to devices not yet
+registered as assets are listed so you can register them under **Assets →
+Reconcile** and import again. The warranty end date drives the dashboard
+lifecycle forecast and the warranty alert.
+
+The end-of-life dates come from a catalogue bundled with each release (no
+internet needed). See the Administrator Guide for updating it between releases.
 
 ---
 
@@ -227,16 +275,17 @@ counted and reported. Per-asset findings appear on the asset detail page.
 - **Overview** — capital by category/department, lifecycle forecast
   (warranty and EOL/EOS), compliance & governance. Fill in `purchase_cost`,
   `warranty_end`, `eol_eos_date` and the governance fields to make these useful.
-- **Library** — 35 ready-made reports: devices without working antivirus,
+- **Library** — 44 ready-made reports: devices without working antivirus,
   firewall off, unencrypted disks, 3+ local admins, remote-access tools,
   missing a specific update, Windows builds, low RAM / low disk space, devices
   not seen in 30 days, virtual machines by host, powered-off VMs, VMs without
-  their own inventory, warranties ending in 90 days, assets past end of life,
+  their own inventory, unsupported OS and software, potentially unwanted
+  software, software by category, warranties ending in 90 days, assets past end of life,
   contracts and licences expiring, open critical vulnerabilities, and more.
   Opening one loads it into the builder, where it can be adjusted and saved.
 - **Builder** — choose the data (devices, installed software, updates,
   services, local accounts, antivirus, disks, monitors, device changes, virtual
-  machines, assets, vulnerabilities, contracts, licences), add filters (match all or any), pick
+  machines, end of life, assets, vulnerabilities, contracts, licences), add filters (match all or any), pick
   and order columns, or **group by** a field to get counts with a bar or pie
   chart. The preview updates as you edit. Device reports include the linked
   asset's tag, department, location, owner and criticality, so "Windows laptops
