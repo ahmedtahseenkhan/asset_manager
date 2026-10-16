@@ -269,18 +269,30 @@ per report).
 
 ## Phase 4 — Network topology map
 
-- [ ] 4.1 SNMP topology collection from switches/routers: LLDP-MIB and CDP
+- [x] 4.1 SNMP topology collection from switches/routers: LLDP-MIB and CDP
       neighbours, BRIDGE-MIB / Q-BRIDGE forwarding tables (MAC → switch port),
-      router ARP tables (`ipNetToMedia`).
-- [ ] 4.2 Tables: `network_interfaces`, `network_links` (device/port ↔ device/port,
-      source lldp/cdp/fdb), `mac_port_locations`.
-- [ ] 4.3 "Where is this device plugged in?" on device detail (switch + port).
-- [ ] 4.4 Map UI with `@xyflow/react`: auto-layout, filter by site/subnet/VLAN,
-      node icons by device type, click → device. Same component renders the CMDB
-      relationship graph for an asset.
+      router ARP tables (`ipNetToMedia`). Also IF-MIB ports and access VLAN
+      (PVID), and Cisco per-VLAN forwarding tables (community@vlan / context vlan-N).
+- [x] 4.2 Tables: `network_ports`, `network_neighbors` (LLDP/CDP), `mac_locations`
+      (forwarding table), `arp_entries` (migration 0008).
+- [x] 4.3 "Where is this device plugged in?" on device detail (switch + port +
+      VLAN), plus a Ports tab on switches and routers.
+- [x] 4.4 Map UI with `@xyflow/react` + dagre: auto-layout, VLAN filter, node
+      icons by role, click → port table / location / device. The same component
+      draws an asset's CMDB relationship graph (List / Graph on the asset page).
 
 **Done when:** scanning a managed switch draws its neighbours and shows which
 port each discovered PC is on.
+
+*Status:* done. Collection runs after a successful SNMP inventory when the
+`topology` module is licensed. Uplinks are ports with a bridge/router/AP
+neighbour or 25+ MACs, so a PC behind an IP phone is located on the phone's
+access port. Hosts scanned without MACs (e.g. from Docker) are located via the
+routers' ARP tables. Verified with live SNMP against **simulated** switches and
+a router (snmpsim recordings in `backend/tests/live/snmpsim`), **not yet against
+real switches**. Not done: site/subnet filters (VLAN only); Q-BRIDGE FDB IDs are
+assumed to equal VLAN IDs (true on most switches, not on some that map VLANs to
+shared FDBs).
 
 ---
 

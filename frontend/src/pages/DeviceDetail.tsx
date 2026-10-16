@@ -7,6 +7,9 @@ import {
   ChangesTab, Flag, HardwareTab, PatchesTab, SecurityTab, ServicesTab, SoftwareTab, UsersTab,
 } from '../components/device/InventoryTabs';
 import clsx from 'clsx';
+import NetworkLocation from '../components/topology/NetworkLocation';
+import SwitchPorts from '../components/topology/SwitchPorts';
+import { getSwitchPorts } from '../api';
 import {
   ArrowLeft, Laptop, Clock, Globe, Network, Cpu, Radar,
   ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle,
@@ -104,6 +107,9 @@ export default function DeviceDetail() {
     enabled: !!id,
   });
   const inv = invRes?.data;
+  const { data: portsRes } = useQuery({
+    queryKey: ['switch-ports', Number(id)], queryFn: () => getSwitchPorts(Number(id)), enabled: !!id, retry: false,
+  });
   const [tab, setTab] = useState('overview');
 
   if (isLoading) {
@@ -138,6 +144,7 @@ export default function DeviceDetail() {
   const extra = scanSource?.raw_data?.extra as Record<string, unknown> | undefined;
   const hasAgent = device.sources.some((s) => s.source_name === 'agent');
   const summary = inv?.summary ?? null;
+  const hasPorts = (portsRes?.data?.length ?? 0) > 0;
   const tabs = [
     { id: 'overview', label: 'Overview', show: true },
     { id: 'hardware', label: 'Hardware', show: !!summary },
@@ -147,6 +154,7 @@ export default function DeviceDetail() {
     { id: 'users', label: 'Users', show: !!summary?.sections_collected.includes('local_accounts') },
     { id: 'security', label: 'Security', show: !!summary },
     { id: 'changes', label: 'Changes', show: !!summary },
+    { id: 'ports', label: 'Ports', show: hasPorts },
   ].filter((t) => t.show);
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'overview';
 
@@ -229,8 +237,12 @@ export default function DeviceDetail() {
       {activeTab === 'users' && inv && <UsersTab inv={inv} />}
       {activeTab === 'security' && inv && <SecurityTab inv={inv} />}
       {activeTab === 'changes' && <ChangesTab deviceId={device.id} />}
+      {activeTab === 'ports' && (
+        <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6"><SwitchPorts deviceId={device.id} /></div>
+      )}
 
       {activeTab === 'overview' && <>
+      <NetworkLocation deviceId={device.id} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Identity */}

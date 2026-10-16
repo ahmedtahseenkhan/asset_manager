@@ -7,6 +7,7 @@ import type {
   CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
   DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet, SshHostKey, CredentialTestResult,
   ReportCatalog, ReportDefinition, ReportResult, LibraryReport, SavedReport, PinnedReport,
+  TopologyGraph, SwitchPort, DeviceLocation,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -289,3 +290,11 @@ export async function exportSavedReport(id: number, name: string, format: 'xlsx'
   const blob = await apiClient.get<never, Blob>(`/reports/saved/${id}/export`, { params: { format }, responseType: 'blob' });
   saveBlob(blob, reportFilename(name, format));
 }
+
+// ── Topology ───────────────────────────────────────────
+export const getTopologyGraph = (endpoints: boolean, vlan?: number | null) =>
+  apiClient.get<never, APIResponse<TopologyGraph>>('/topology/graph', { params: { endpoints, ...(vlan ? { vlan } : {}) } });
+export const getSwitchPorts = (deviceId: number) =>
+  apiClient.get<never, APIResponse<SwitchPort[]>>(`/topology/devices/${deviceId}/ports`);
+export const getDeviceLocation = (deviceId: number) =>
+  apiClient.get<never, APIResponse<DeviceLocation[]>>(`/topology/devices/${deviceId}/location`);

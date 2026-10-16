@@ -27,12 +27,16 @@ from backend.models.scan_target import ScanTarget
 from backend.scanning.collectors import CredentialInput
 from backend.scanning.credentialed import METHOD_ORDER, HostKeyStore, inventory_host
 from backend.scanning.targets import TargetSpecError, resolve
+from backend.licensing.state import license_manager
 from backend.services.inventory_service import InventoryService
+from backend.topology import snmp_topology
+from backend.topology.service import save_snapshot
 
 logger = logging.getLogger(__name__)
 
 SWEEP_SOURCE = "network_scan"   # devices found by a sweep merge with the connector's
 MAX_PARALLEL_INVENTORY = 16
+TOPOLOGY_TIMEOUT_S = 300       # large switches have big forwarding tables
 
 
 class ScanAlreadyRunning(Exception):
@@ -203,6 +207,11 @@ class ScanRunner:
                         result.device_id = ingested["device_id"]
                         result.hostname = ingested["hostname"] or result.hostname
                         counts["inventoried"] += 1
+                        if outcome.method == "snmp" and license_manager.current.module_enabled("topology"):
+                            cred = next(c for c in credentials if c.id == outcome.credential_id)
+                            note = await self._collect_topology(db, ip, cred, ingested["device_id"])
+                            if note:
+                                result.error_message = note
                     else:
                         result.status = "failed"
                         counts["failed"] += 1
@@ -213,6 +222,18 @@ class ScanRunner:
             await db.execute(update(ScanRun).where(ScanRun.id == run_id).values(
                 hosts_inventoried=counts["inventoried"], hosts_failed=counts["failed"]))
             await db.commit()
+
+    @staticmethod
+    async def _collect_topology(db, ip: str, cred: CredentialInput, device_id: int) -> Optional[str]:
+        """Read LLDP/CDP neighbours, the MAC table and ARP cache of an SNMP device.
+        Returns a note on failure; the host's inventory still counts."""
+        try:
+            snap = await asyncio.wait_for(snmp_topology.collect(ip, cred), TOPOLOGY_TIMEOUT_S)
+            await save_snapshot(db, device_id, snap)
+        except Exception as exc:          # topology is best-effort on top of inventory
+            logger.warning("Topology collection from %s failed: %s", ip, exc)
+            return f"Inventory collected, but reading its topology tables failed: {exc}"[:500]
+        return None
 
     async def recover_interrupted(self) -> int:
         """Runs left queued/running by a restart can never finish: close them."""

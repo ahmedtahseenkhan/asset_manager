@@ -19,12 +19,14 @@ from backend.models.scan_target import ScanTarget, ScanTargetCredential
 from backend.models.scan_run import ScanRun, ScanHostResult
 from backend.models.ssh_host_key import SshHostKey
 from backend.models.saved_report import SavedReport
+from backend.models.topology import NetworkPort, NetworkNeighbor, MacLocation, ArpEntry
 from backend.models.inventory import (
     DeviceInventory, DevicePatch, DeviceService, DeviceLocalAccount, DeviceAntivirus,
     DeviceVolume, DeviceNetworkAdapter, DeviceMonitor, DevicePrinter, DeviceChange,
 )
 
 __all__ = [
+    "NetworkPort", "NetworkNeighbor", "MacLocation", "ArpEntry",
     "SavedReport",
     "SshHostKey",
     "DeviceInventory", "DevicePatch", "DeviceService", "DeviceLocalAccount", "DeviceAntivirus",

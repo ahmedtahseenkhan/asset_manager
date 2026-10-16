@@ -515,3 +515,34 @@ export interface PinnedReport {
   id: number; name: string; chart: 'none' | 'bar' | 'pie';
   result: ReportResult | { kind: 'error'; message: string };
 }
+
+// ── Topology ─────────────────────────────────────────
+export type TopologyRole = 'switch' | 'router' | 'windows' | 'mac' | 'linux' | 'printer' | 'phone' | 'device';
+
+export interface TopologyNode {
+  id: string; device_id: number | null; label: string; ip: string | null;
+  kind: 'infrastructure' | 'endpoint' | 'external'; role: TopologyRole; model: string | null;
+}
+
+export interface TopologyEdge {
+  id: string; source: string; target: string; kind: 'link' | 'access'; protocols: string[];
+  source_port: string | null; target_port: string | null; vlan?: number | null;
+}
+
+export interface TopologyGraph {
+  nodes: TopologyNode[]; edges: TopologyEdge[];
+  stats: { infrastructure: number; external: number; endpoints: number; links: number; endpoints_capped: boolean;
+           macs: number; last_collected: string | null };
+}
+
+export interface SwitchPort {
+  id: number; if_index: number; name: string | null; alias: string | null; oper_up: boolean | null;
+  admin_up: boolean | null; speed_mbps: number | null; vlan: number | null; mac_count: number; uplink: boolean;
+  neighbors: { name: string | null; port: string | null; device_id: number | null; protocol: string }[];
+  connected: { mac: string; ip: string | null; device_id: number | null; hostname: string | null }[];
+}
+
+export interface DeviceLocation {
+  switch_id: number; switch: string | null; port: string | null; port_alias: string | null; port_id: number;
+  vlan: number | null; mac: string; uplink: boolean; macs_on_port: number; last_seen: string | null;
+}

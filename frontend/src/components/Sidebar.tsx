@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Laptop, Plug, LogOut, ShieldAlert, Settings, Boxes, KeyRound,
-  FileText, KeySquare, BellRing, ShieldCheck, Scale, Radar, BarChart3, ScanSearch,
+  FileText, KeySquare, BellRing, ShieldCheck, Scale, Radar, BarChart3, ScanSearch, Share2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
@@ -19,6 +19,7 @@ const GROUPS: Group[] = [
     items: [
       { to: '/assets', label: 'Assets', icon: Boxes },
       { to: '/devices', label: 'Devices', icon: Laptop },
+      { to: '/topology', label: 'Network map', icon: Share2 },
       { to: '/software', label: 'Software', icon: Scale },
       { to: '/contracts', label: 'Contracts', icon: FileText },
       { to: '/entitlements', label: 'Entitlements', icon: KeySquare },

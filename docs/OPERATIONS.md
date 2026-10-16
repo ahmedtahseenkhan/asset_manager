@@ -52,6 +52,26 @@ from `backend/`.
 
 ---
 
+## 0b. Network map
+
+**Network map** (licence module `topology`) draws switches, routers and the
+links between them, and shows which switch port every device is plugged into.
+
+- Data comes from SNMP: when a scan target with **SNMP** ticked inventories a
+  switch or router, its LLDP/CDP neighbours, MAC address table and ARP cache
+  are read too. Neighbours that haven't been scanned yet appear dashed.
+- **Show connected devices** adds the devices on each access port; filter by
+  VLAN for large networks (the map shows up to 500 devices).
+- Click a switch for its port table (status, VLAN, neighbour, what's plugged
+  in); click a device to see its port. Every device page also has a **Network
+  location** card ("Plugged into ACCESS-SW port Gi1/0/12 · VLAN 20"), and
+  switches/routers get a **Ports** tab.
+- Devices found by a scan from inside Docker have no MAC address; they are
+  located through the routers' ARP tables, so include your routers / layer-3
+  switches in the SNMP target.
+
+---
+
 ## 1. Agent rollout (the deepest, most reliable inventory)
 
 A network scan sees *presence*; the **agent** sees *identity and state*. It

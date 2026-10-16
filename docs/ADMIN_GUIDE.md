@@ -168,6 +168,12 @@ account, use **Test credential** against one host before scheduling a scan.
 - Add this server to the device's SNMP access list. A wrong community and a
   missing ACL look identical (no response); a wrong SNMPv3 password is reported
   as a sign-in failure.
+- **Network map** (licence module `topology`): include your switches and
+  routers in an SNMP scan target. The same read-only access is used to read
+  LLDP/CDP neighbours, the MAC address table and the ARP cache. Enable LLDP (or
+  CDP) on switches so links are drawn. On Cisco switches without Q-BRIDGE-MIB,
+  the MAC table is read per VLAN: for SNMPv3 the user needs access to the
+  `vlan-*` contexts (`snmp-server group … context vlan- match prefix`).
 
 **Docker networking.** In the standard install the API container reaches your
 LAN through Docker's NAT: ping, WinRM, SSH and SNMP all work, but ARP-based

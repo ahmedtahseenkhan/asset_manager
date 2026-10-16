@@ -4,6 +4,7 @@ Collectors against real services. Skipped unless ITAM_LIVE_TESTS=1.
 Start the services first (see docs/OPERATIONS.md, "Testing collectors"):
   SSH  : container on 127.0.0.1:2222, user scan / Scan-Pass-123 (NOPASSWD sudo for python3)
   SNMP : snmpd on 127.0.0.1:1161/udp, community "labro", v3 user v3user SHA/AES authpass123/privpass123
+  SIM  : snmpsim on 127.0.0.1:1170/udp with tests/live/snmpsim recordings (topology)
 """
 import os
 
@@ -70,3 +71,24 @@ async def test_snmp_wrong_credentials():
     with pytest.raises(CollectorError) as err:
         await snmp.collect("127.0.0.1", bad_v3, port=1161)
     assert err.value.code == "auth_failed"
+
+
+def _sim(community):
+    return CredentialInput(9, "snmp_v2c", None, {"port": 1170}, {"community": community})
+
+
+async def test_topology_from_recorded_switches():
+    from backend.topology import snmp_topology
+    access = await snmp_topology.collect("127.0.0.1", _sim("access"))
+    assert {p.name: p.vlan for p in access.ports}["Gi1/0/12"] == 20
+    nbrs = {n.sys_name: n for n in access.neighbors}
+    assert nbrs["core-sw.corp.local"].local_if_index == 10148 and nbrs["core-sw.corp.local"].is_bridge
+    assert nbrs["SEP0004F2000005"].is_bridge is False
+    assert ("AA:00:00:00:00:12", 10112, 20) in {(f.mac, f.if_index, f.vlan) for f in access.fdb}
+
+    router = await snmp_topology.collect("127.0.0.1", _sim("router"))
+    assert router.neighbors[0].protocol == "cdp" and router.neighbors[0].mgmt_ip == "10.0.0.1"
+    assert ("10.20.0.12", "AA:00:00:00:00:12") in {(a.ip, a.mac) for a in router.arp}
+
+    legacy = await snmp_topology.collect("127.0.0.1", _sim("legacy"))     # per-VLAN via community@vlan
+    assert {(f.mac, f.vlan) for f in legacy.fdb} == {("BB:00:00:00:00:10", 10), ("BB:00:00:00:00:20", 20)}

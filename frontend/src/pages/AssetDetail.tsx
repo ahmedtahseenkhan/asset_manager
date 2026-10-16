@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Trash2, Laptop, History, Share2, X, Bug, Plus, S
 import { format } from 'date-fns';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import RelationshipGraph from '../components/topology/RelationshipGraph';
 
 const REL_TYPES = ['depends_on', 'installed_on', 'connected_to', 'hosts', 'part_of', 'backs_up'];
 const REL_LABELS: Record<string, string> = {
@@ -135,6 +136,7 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
   const outgoing = rels?.outgoing ?? [];
   const incoming = rels?.incoming ?? [];
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<'list' | 'graph'>('list');
 
   const EdgeRow = ({ e, dir }: { e: any; dir: 'out' | 'in' }) => (
     <div className="group flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-900/40 border border-slate-700/40 hover:border-slate-600 transition-colors">
@@ -162,6 +164,16 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
         <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
           <Share2 className="w-4 h-4" /> Relationships
           <span className="text-slate-500 normal-case font-normal">({outgoing.length + incoming.length})</span>
+          {outgoing.length + incoming.length > 0 && (
+            <span className="ml-3 inline-flex rounded-lg border border-slate-700 overflow-hidden normal-case font-normal">
+              {(['list', 'graph'] as const).map((v) => (
+                <button key={v} onClick={() => setView(v)}
+                  className={clsx('px-2.5 py-0.5 text-xs', view === v ? 'bg-slate-700 text-slate-50' : 'text-slate-400 hover:text-slate-200')}>
+                  {v === 'list' ? 'List' : 'Graph'}
+                </button>
+              ))}
+            </span>
+          )}
         </h2>
         {canEdit && !adding && (
           <button onClick={() => setAdding(true)}
@@ -214,6 +226,9 @@ function RelationshipsCard({ assetId, canEdit }: { assetId: number; canEdit: boo
           <p className="text-sm text-slate-500">No relationships mapped yet.</p>
           {canEdit && <p className="text-xs text-slate-600 mt-1">Map dependencies to build the CMDB graph.</p>}
         </div>
+      ) : view === 'graph' && res?.data ? (
+        <RelationshipGraph center={{ id: res.data.id, name: res.data.name, asset_tag: res.data.asset_tag }}
+          outgoing={outgoing} incoming={incoming} />
       ) : (
         <div className="space-y-4">
           {outgoing.length > 0 && (

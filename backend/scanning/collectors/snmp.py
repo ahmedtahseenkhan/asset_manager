@@ -84,9 +84,20 @@ def _mac(value) -> Optional[str]:
 
 
 class _Session:
-    def __init__(self, host: str, cred: CredentialInput, port: int):
+    def __init__(self, host: str, cred: CredentialInput, port: int, vlan: Optional[int] = None):
+        """`vlan` selects a per-VLAN view of the bridge MIB, as older Cisco switches
+        need for their forwarding tables: community@vlan (v1/v2c) or the
+        "vlan-N" context (v3)."""
         self.engine = SnmpEngine()
         self.auth = _auth_data(cred)
+        self.context = ContextData()
+        if vlan is not None:
+            if cred.cred_type == "snmp_v2c":
+                v2 = CredentialInput(cred.id, cred.cred_type, cred.username, cred.params,
+                                     {**cred.secret, "community": f"{cred.secret.get('community', '')}@{vlan}"})
+                self.auth = _auth_data(v2)
+            else:
+                self.context = ContextData(contextName=f"vlan-{vlan}")
         self.host, self.port = host, port
         self.target = None
 
@@ -95,7 +106,7 @@ class _Session:
 
     async def get(self, *oids: str) -> Dict[str, object]:
         err, status, _idx, binds = await get_cmd(
-            self.engine, self.auth, self.target, ContextData(), *(ObjectType(ObjectIdentity(o)) for o in oids))
+            self.engine, self.auth, self.target, self.context, *(ObjectType(ObjectIdentity(o)) for o in oids))
         if err:
             text = str(err)
             # SNMPv3 tells a bad user/password apart from silence; v1/v2c can't.
@@ -111,7 +122,7 @@ class _Session:
         """{index suffix: value} under oid."""
         out: Dict[str, object] = {}
         async for err, status, _idx, binds in bulk_walk_cmd(
-                self.engine, self.auth, self.target, ContextData(), 0, 25,
+                self.engine, self.auth, self.target, self.context, 0, 25,
                 ObjectType(ObjectIdentity(oid)), lexicographicMode=False):
             if err or status:
                 break
@@ -143,8 +154,8 @@ def _vendor(object_id: Optional[str]) -> Optional[str]:
     return None
 
 
-async def collect(host: str, cred: CredentialInput, port: int = PORT) -> InventoryReport:
-    s = _Session(host, cred, port)
+async def collect(host: str, cred: CredentialInput, port: Optional[int] = None) -> InventoryReport:
+    s = _Session(host, cred, port or int(cred.params.get("port") or PORT))
     try:
         await s.open()
         sysinfo = await _system(s)
@@ -196,8 +207,8 @@ async def collect(host: str, cred: CredentialInput, port: int = PORT) -> Invento
     )
 
 
-async def test(host: str, cred: CredentialInput, port: int = PORT) -> dict:
-    s = _Session(host, cred, port)
+async def test(host: str, cred: CredentialInput, port: Optional[int] = None) -> dict:
+    s = _Session(host, cred, port or int(cred.params.get("port") or PORT))
     try:
         await s.open()
         info = await _system(s)

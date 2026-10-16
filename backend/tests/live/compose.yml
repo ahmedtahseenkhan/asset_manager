@@ -1,4 +1,6 @@
 # Real services for tests/test_collectors_live.py (developer machines only).
+# snmpsim serves recorded switch/router data (tests/live/snmpsim); the community
+# string picks the device: core, access, router, legacy (legacy@<vlan> per VLAN).
 #
 #   docker compose -f backend/tests/live/compose.yml up -d --build
 #   cd backend && ITAM_LIVE_TESTS=1 ./.venv/bin/python -m pytest tests/test_collectors_live.py
@@ -30,3 +32,13 @@ services:
         CMD ["snmpd", "-f", "-Lo", "-C", "-c", "/etc/snmp/snmpd.conf"]
     ports:
       - "127.0.0.1:1161:161/udp"
+
+  snmpsim:
+    image: python:3.12-slim
+    command: >-
+      sh -c "pip install -q snmpsim==1.2.2 pysmi 2>/dev/null && useradd -m sim &&
+             exec su sim -c 'snmpsim-command-responder --data-dir=/data --agent-udpv4-endpoint=0.0.0.0:1161'"
+    volumes:
+      - ./snmpsim/data:/data:ro
+    ports:
+      - "127.0.0.1:1170:1161/udp"

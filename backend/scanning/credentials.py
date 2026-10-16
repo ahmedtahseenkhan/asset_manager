@@ -35,13 +35,14 @@ CREDENTIAL_TYPES: Dict[str, dict] = {
         "label": "SNMP v1/v2c",
         "username": "none",
         "secrets": {"community": True},
-        "params": {"version": ("1", "2c")},
+        "params": {"version": ("1", "2c"), "port": None},
     },
     "snmp_v3": {
         "label": "SNMP v3",
         "username": "required",           # SNMPv3 security name
         "secrets": {"auth_password": False, "priv_password": False},
         "params": {
+            "port": None,
             "security_level": ("noAuthNoPriv", "authNoPriv", "authPriv"),
             "auth_protocol": ("MD5", "SHA", "SHA224", "SHA256", "SHA384", "SHA512"),
             "priv_protocol": ("DES", "3DES", "AES128", "AES192", "AES256"),
