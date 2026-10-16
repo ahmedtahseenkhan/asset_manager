@@ -175,6 +175,13 @@ account, use **Test credential** against one host before scheduling a scan.
   the MAC table is read per VLAN: for SNMPv3 the user needs access to the
   `vlan-*` contexts (`snmp-server group … context vlan- match prefix`).
 
+**Hyper-V hosts.** Guests are read with the same agent or WinRM scan as the
+host (`Get-VM` and the `root\virtualization\v2` WMI namespace). For WinRM,
+the account needs local **Administrators** or **Hyper-V Administrators**
+membership on the host. Guest IP addresses, FQDN and OS name come from
+integration services, so they are only known for running guests with
+integration services enabled.
+
 **Docker networking.** In the standard install the API container reaches your
 LAN through Docker's NAT: ping, WinRM, SSH and SNMP all work, but ARP-based
 details (MAC addresses of hosts that don't run an agent) and broadcast name

@@ -70,6 +70,32 @@ links between them, and shows which switch port every device is plugged into.
   located through the routers' ARP tables, so include your routers / layer-3
   switches in the SNMP target.
 
+## 0c. Virtual machines (Hyper-V)
+
+Hyper-V hosts report their guests automatically: install the agent on the host,
+or include the host in a scan target with **WinRM** ticked. Nothing extra to
+configure. Collection runs only where the Hyper-V PowerShell module is present,
+so ordinary PCs are unaffected.
+
+- Every guest becomes a device of type **Virtual machine**, with its host,
+  power state (running / off / suspended), vCPUs, memory, disk size,
+  integration services state and, for running guests with integration
+  services, its IP addresses, FQDN and OS name.
+- A host's device page has a **Virtual machines** tab (with totals for running
+  guests); a guest's page shows which host it runs on.
+- A guest that also runs the agent, or is scanned, stays **one device**: it is
+  matched by its BIOS UUID. The guest's own inventory always wins; the host
+  only fills in what the guest hasn't reported. Guests known only from their
+  host say so on their page. **Reports → Library → Virtual machines without
+  their own inventory** lists them, so you can close the gap.
+- Live migration moves the guest to its new host on the next report from
+  either host. A guest deleted from Hyper-V leaves the host's list on the
+  host's next report; its device record stays and ages out like any other.
+- If both the host and the guest are linked to assets, a CMDB **hosts**
+  relationship is kept up to date automatically. Relationships you draw by hand
+  are never changed.
+- VMware vCenter / ESXi is not supported yet.
+
 ---
 
 ## 1. Agent rollout (the deepest, most reliable inventory)
@@ -201,15 +227,16 @@ counted and reported. Per-asset findings appear on the asset detail page.
 - **Overview** — capital by category/department, lifecycle forecast
   (warranty and EOL/EOS), compliance & governance. Fill in `purchase_cost`,
   `warranty_end`, `eol_eos_date` and the governance fields to make these useful.
-- **Library** — 31 ready-made reports: devices without working antivirus,
+- **Library** — 35 ready-made reports: devices without working antivirus,
   firewall off, unencrypted disks, 3+ local admins, remote-access tools,
   missing a specific update, Windows builds, low RAM / low disk space, devices
-  not seen in 30 days, warranties ending in 90 days, assets past end of life,
+  not seen in 30 days, virtual machines by host, powered-off VMs, VMs without
+  their own inventory, warranties ending in 90 days, assets past end of life,
   contracts and licences expiring, open critical vulnerabilities, and more.
   Opening one loads it into the builder, where it can be adjusted and saved.
 - **Builder** — choose the data (devices, installed software, updates,
-  services, local accounts, antivirus, disks, monitors, device changes, assets,
-  vulnerabilities, contracts, licences), add filters (match all or any), pick
+  services, local accounts, antivirus, disks, monitors, device changes, virtual
+  machines, assets, vulnerabilities, contracts, licences), add filters (match all or any), pick
   and order columns, or **group by** a field to get counts with a bar or pie
   chart. The preview updates as you edit. Device reports include the linked
   asset's tag, department, location, owner and criticality, so "Windows laptops

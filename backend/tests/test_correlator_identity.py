@@ -35,6 +35,34 @@ async def test_hardware_uuid_takes_precedence_over_hostname(db_session):
     assert devices[0].hardware_uuid == uuid
 
 
+async def test_same_hostname_with_different_uuids_are_different_machines(db_session):
+    await Correlator.process_batch(db_session, "agent", [
+        make_raw(source_uid="a-1", hostname="TEST", fqdn=None, mac_addresses=["AA:00:00:00:00:01"],
+                 extra={"hardware_uuid": "aaaaaaaa-0000-0000-0000-000000000001"}),
+        make_raw(source_uid="a-2", hostname="TEST", fqdn=None, mac_addresses=["AA:00:00:00:00:02"],
+                 extra={"hardware_uuid": "aaaaaaaa-0000-0000-0000-000000000002"}),
+    ])
+    assert len(await _devices(db_session)) == 2
+
+    # A source that knows no UUID still merges by name
+    await Correlator.process_batch(db_session, "active_directory", [
+        make_raw(source_uid="ad-1", hostname="TEST", fqdn=None, mac_addresses=["AA:00:00:00:00:09"]),
+    ])
+    assert len(await _devices(db_session)) == 2
+
+
+async def test_byte_swapped_uuid_is_the_same_machine(db_session):
+    await Correlator.process_batch(db_session, "vmware", [
+        make_raw(source_uid="v-1", hostname="APP01", fqdn=None,
+                 extra={"hardware_uuid": "4c4c4544-0042-3510-8051-c7c04f4e3332"}),
+    ])
+    await Correlator.process_batch(db_session, "agent", [
+        make_raw(source_uid="a-1", hostname="APP01-RENAMED", fqdn=None,
+                 extra={"hardware_uuid": "44454C4C-4200-1035-8051-C7C04F4E3332"}),
+    ])
+    assert len(await _devices(db_session)) == 1
+
+
 async def test_placeholder_serials_never_merge_machines(db_session):
     await Correlator.process_batch(db_session, "agent", [
         make_raw(source_uid="a-1", hostname="PC-1", fqdn=None, mac_addresses=["AA:00:00:00:00:01"],

@@ -14,6 +14,7 @@ from backend.models.inventory import (
     DeviceMonitor, DeviceNetworkAdapter, DevicePatch, DevicePrinter, DeviceService, DeviceVolume,
 )
 from backend.models.user import User
+from backend.models.virtualization import VmPlacement
 from backend.schemas.common import APIResponse
 from backend.services.endpoint_health import endpoint_health
 
@@ -65,6 +66,40 @@ async def device_inventory(device_id: int, db: AsyncSession = Depends(get_db),
                      for r in await _rows(db, DeviceMonitor, device_id, DeviceMonitor.id)],
         "printers": [_row(r, "name", "driver", "port", "is_network", "is_default")
                      for r in await _rows(db, DevicePrinter, device_id, DevicePrinter.name)],
+    })
+
+
+_PLACEMENT_FIELDS = ("vm_name", "platform", "instance_id", "power_state", "guest_os", "vcpus", "memory_gb",
+                     "disk_gb", "tools_status", "cluster", "datacenter", "last_seen")
+
+
+@router.get("/devices/{device_id}/virtualization", response_model=APIResponse[Dict[str, Any]])
+async def device_virtualization(device_id: int, db: AsyncSession = Depends(get_db),
+                                user: User = Depends(get_current_user)):
+    """The host this device runs on (if it is a VM), and the guests it runs (if it is a host)."""
+    if await db.get(Device, device_id) is None:
+        raise HTTPException(404, "Device not found")
+    host = None
+    row = (await db.execute(
+        select(VmPlacement, Device.hostname).join(Device, Device.id == VmPlacement.host_device_id)
+        .where(VmPlacement.vm_device_id == device_id))).first()
+    if row:
+        host = {"device_id": row[0].host_device_id, "hostname": row[1], **_row(row[0], *_PLACEMENT_FIELDS)}
+    rows = (await db.execute(
+        select(VmPlacement, Device.hostname, Device.ip_addresses, DeviceInventory.sections_collected)
+        .join(Device, Device.id == VmPlacement.vm_device_id)
+        .outerjoin(DeviceInventory, DeviceInventory.device_id == VmPlacement.vm_device_id)
+        .where(VmPlacement.host_device_id == device_id).order_by(VmPlacement.vm_name))).all()
+    guests = [{"device_id": p.vm_device_id, "hostname": hostname, "ip": (ips or [None])[0],
+               "inventoried": bool(sections), **_row(p, *_PLACEMENT_FIELDS)}
+              for p, hostname, ips, sections in rows]
+    running = [g for g in guests if g["power_state"] == "on"]
+    return APIResponse(data={
+        "host": host,
+        "guests": guests,
+        "totals": {"guests": len(guests), "running": len(running),
+                   "vcpus_running": sum(g["vcpus"] or 0 for g in running),
+                   "memory_gb_running": round(sum(g["memory_gb"] or 0 for g in running), 1)},
     })
 
 

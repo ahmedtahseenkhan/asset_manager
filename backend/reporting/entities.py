@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
 from sqlalchemy import case, exists, select
+from sqlalchemy.orm import aliased
 from sqlalchemy.sql import ColumnElement
 
 from backend.models.asset import (
@@ -27,6 +28,7 @@ from backend.models.inventory import (
     DevicePatch, DeviceService, DeviceVolume,
 )
 from backend.models.software import InstalledSoftware
+from backend.models.virtualization import VmPlacement
 from backend.models.vulnerability import SEVERITIES, Vulnerability
 
 
@@ -259,6 +261,41 @@ _device_child("changes", "Device changes", DeviceChange, "Change history from in
                Field("source", "Reported by", "string", DeviceChange.source)],
               ["detected_at", "hostname", "category", "change_type", "item", "old_value", "new_value"],
               "detected_at", category="Security")
+
+
+# ── Virtual machines ───────────────────────────────────────────────────────
+_VmHost = aliased(Device, name="vm_host")
+_HYPERVISOR_SOURCES = ("hyperv", "vmware")
+
+_register(Entity(
+    key="virtual_machines", label="Virtual machines", base=VmPlacement, category="Inventory",
+    description="Guests reported by their Hyper-V hosts: host, power state and allocation.",
+    joins=[(Device, Device.id == VmPlacement.vm_device_id),
+           (_VmHost, _VmHost.id == VmPlacement.host_device_id),
+           (DeviceInventory, DeviceInventory.device_id == VmPlacement.vm_device_id)],
+    link=("device", Device.id),
+    default_columns=["vm_name", "host", "power_state", "guest_os", "vcpus", "memory_gb", "disk_gb"],
+    default_sort="vm_name",
+    search_fields=["vm_name", "hostname", "host", "guest_os"],
+    fields=_fields(
+        Field("vm_name", "Virtual machine", "string", VmPlacement.vm_name),
+        Field("host", "Host", "string", _VmHost.hostname),
+        Field("platform", "Platform", "enum", VmPlacement.platform, ["hyperv", "vmware"]),
+        Field("power_state", "Power state", "enum", VmPlacement.power_state, ["on", "off", "suspended"]),
+        Field("guest_os", "Guest OS", "string", VmPlacement.guest_os),
+        Field("vcpus", "vCPUs", "number", VmPlacement.vcpus),
+        Field("memory_gb", "Memory (GB)", "number", VmPlacement.memory_gb),
+        Field("disk_gb", "Disk (GB)", "number", VmPlacement.disk_gb),
+        Field("tools_status", "Integration services / tools", "string", VmPlacement.tools_status),
+        Field("cluster", "Cluster", "string", VmPlacement.cluster),
+        Field("datacenter", "Datacenter", "string", VmPlacement.datacenter),
+        Field("own_inventory", "Own inventory (agent or scan)", "bool",
+              case((DeviceInventory.source.is_(None), None),
+                   (DeviceInventory.source.in_(_HYPERVISOR_SOURCES), False), else_=True)),
+        Field("reported_at", "Reported by host", "datetime", VmPlacement.last_seen),
+        *_device_fields(),
+    ),
+))
 
 
 # ── Assets & commercial ────────────────────────────────────────────────────

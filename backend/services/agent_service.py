@@ -15,7 +15,7 @@ from backend.services.inventory_service import InventoryService
 AGENT_SOURCE = "agent"
 
 # Version shipped in agent/; reports from older agents are flagged as outdated.
-LATEST_AGENT_VERSION = "2.0.0"
+LATEST_AGENT_VERSION = "2.1.0"
 
 
 def _version_tuple(v: Optional[str]) -> tuple:

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getDeviceById, getDeviceInventory } from '../api';
+import { getDeviceById, getDeviceInventory, getDeviceVirtualization } from '../api';
 import type { DeviceSource } from '../types';
 import {
   ChangesTab, Flag, HardwareTab, PatchesTab, SecurityTab, ServicesTab, SoftwareTab, UsersTab,
+  VirtualMachinesTab, VmHostCard,
 } from '../components/device/InventoryTabs';
 import clsx from 'clsx';
 import NetworkLocation from '../components/topology/NetworkLocation';
@@ -110,6 +111,12 @@ export default function DeviceDetail() {
   const { data: portsRes } = useQuery({
     queryKey: ['switch-ports', Number(id)], queryFn: () => getSwitchPorts(Number(id)), enabled: !!id, retry: false,
   });
+  const { data: virtRes } = useQuery({
+    queryKey: ['device-virtualization', id],
+    queryFn: () => getDeviceVirtualization(Number(id)),
+    enabled: !!id,
+  });
+  const virt = virtRes?.data;
   const [tab, setTab] = useState('overview');
 
   if (isLoading) {
@@ -144,16 +151,19 @@ export default function DeviceDetail() {
   const extra = scanSource?.raw_data?.extra as Record<string, unknown> | undefined;
   const hasAgent = device.sources.some((s) => s.source_name === 'agent');
   const summary = inv?.summary ?? null;
+  // A VM seen only through its hypervisor has a summary but no inventory of its own
+  const fullInventory = (summary?.sections_collected.length ?? 0) > 0;
   const hasPorts = (portsRes?.data?.length ?? 0) > 0;
   const tabs = [
     { id: 'overview', label: 'Overview', show: true },
     { id: 'hardware', label: 'Hardware', show: !!summary },
-    { id: 'software', label: 'Software', show: hasAgent || !!summary },
+    { id: 'software', label: 'Software', show: hasAgent || fullInventory },
     { id: 'patches', label: 'Updates', show: !!summary?.sections_collected.includes('patches') },
     { id: 'services', label: 'Services', show: !!summary?.sections_collected.includes('services') },
     { id: 'users', label: 'Users', show: !!summary?.sections_collected.includes('local_accounts') },
-    { id: 'security', label: 'Security', show: !!summary },
-    { id: 'changes', label: 'Changes', show: !!summary },
+    { id: 'vms', label: `Virtual machines (${virt?.totals.guests ?? 0})`, show: (virt?.totals.guests ?? 0) > 0 },
+    { id: 'security', label: 'Security', show: fullInventory },
+    { id: 'changes', label: 'Changes', show: fullInventory },
     { id: 'ports', label: 'Ports', show: hasPorts },
   ].filter((t) => t.show);
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'overview';
@@ -205,13 +215,19 @@ export default function DeviceDetail() {
         </div>
         {summary && (
           <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5 pt-4 border-t border-slate-700/40">
-            <Flag value={summary.antivirus_ok} good="Antivirus OK" bad="No working antivirus" unknown="Antivirus unknown" />
-            <Flag value={summary.firewall_ok} good="Firewall on" bad="Firewall off" unknown="Firewall unknown" />
-            <Flag value={summary.disk_encrypted} good="Disk encrypted" bad="Disk not encrypted" unknown="Encryption unknown" />
-            {summary.pending_reboot && <Flag value={true} good="Reboot pending" bad="" invert />}
+            {fullInventory ? <>
+              <Flag value={summary.antivirus_ok} good="Antivirus OK" bad="No working antivirus" unknown="Antivirus unknown" />
+              <Flag value={summary.firewall_ok} good="Firewall on" bad="Firewall off" unknown="Firewall unknown" />
+              <Flag value={summary.disk_encrypted} good="Disk encrypted" bad="Disk not encrypted" unknown="Encryption unknown" />
+              {summary.pending_reboot && <Flag value={true} good="Reboot pending" bad="" invert />}
+            </> : virt?.host && (
+              <span className="text-sm text-slate-500">
+                Only what the hypervisor reports. Install the agent or scan this machine for software, updates and security.
+              </span>
+            )}
             {summary.collected_at && (
               <span className="text-xs text-slate-500 self-center ml-auto">
-                Inventory {format(new Date(summary.collected_at), 'MMM d, yyyy HH:mm')} · {summary.source} {summary.collector_version}
+                Inventory {format(new Date(summary.collected_at), 'MMM d, yyyy HH:mm')} · {summary.source} {summary.collector_version ?? ''}
               </span>
             )}
           </div>
@@ -236,12 +252,14 @@ export default function DeviceDetail() {
       {activeTab === 'services' && inv && <ServicesTab inv={inv} />}
       {activeTab === 'users' && inv && <UsersTab inv={inv} />}
       {activeTab === 'security' && inv && <SecurityTab inv={inv} />}
+      {activeTab === 'vms' && virt && <VirtualMachinesTab virt={virt} />}
       {activeTab === 'changes' && <ChangesTab deviceId={device.id} />}
       {activeTab === 'ports' && (
         <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6"><SwitchPorts deviceId={device.id} /></div>
       )}
 
       {activeTab === 'overview' && <>
+      {virt?.host && <VmHostCard host={virt.host} />}
       <NetworkLocation deviceId={device.id} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

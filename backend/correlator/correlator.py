@@ -42,6 +42,18 @@ _JUNK_UUIDS = {
 }
 
 
+def uuid_variants(value: str) -> set:
+    """A SMBIOS UUID and its mixed-endian twin. Hypervisors report a VM's BIOS
+    UUID in one byte order while the guest OS (e.g. Windows inside a VMware VM)
+    may show the first three groups byte-swapped; both mean the same machine."""
+    v = value.lower()
+    parts = v.split("-")
+    if len(parts) != 5 or [len(p) for p in parts] != [8, 4, 4, 4, 12]:
+        return {v}
+    swap = lambda h: "".join(reversed([h[i:i + 2] for i in range(0, len(h), 2)]))  # noqa: E731
+    return {v, "-".join([swap(parts[0]), swap(parts[1]), swap(parts[2]), parts[3], parts[4]])}
+
+
 def hardware_identity(raw: RawDeviceRecord) -> Tuple[str | None, str | None]:
     """(serial_number, hardware_uuid) from a raw record, or None for placeholders."""
     extra = raw.get("extra") or {}
@@ -97,6 +109,8 @@ class Correlator:
         2. Hostname match    — fallback when FQDN is unavailable (e.g. CrowdStrike)
         3. MAC address match — last resort for nameless devices (skipped for IP-identity
                                sources like network_scan)
+        Steps 1-3 never pick a device whose known hardware UUID differs from the
+        record's: same-named machines (e.g. two "test" VMs) are different machines.
         """
         # 0. A DeviceSource with this (source_name, source_uid) is the same logical
         #    entity from this connector — return its device (correct re-sync updates).
@@ -112,7 +126,8 @@ class Correlator:
                 return dev
 
         if hw_uuid:
-            dev = (await db.execute(select(Device).where(Device.hardware_uuid == hw_uuid))).scalars().first()
+            dev = (await db.execute(select(Device).where(
+                Device.hardware_uuid.in_(uuid_variants(hw_uuid))))).scalars().first()
             if dev:
                 return dev
         if serial:
@@ -120,15 +135,21 @@ class Correlator:
             if dev:
                 return dev
 
+        own_uuids = uuid_variants(hw_uuid) if hw_uuid else None
+
+        def first_compatible(devices) -> Device | None:
+            for dev in devices:
+                if own_uuids is None or not dev.hardware_uuid or dev.hardware_uuid in own_uuids:
+                    return dev
+            return None
+
         if fqdn:
-            result = await db.execute(select(Device).where(Device.fqdn == fqdn))
-            dev = result.scalars().first()
+            dev = first_compatible((await db.execute(select(Device).where(Device.fqdn == fqdn))).scalars())
             if dev:
                 return dev
 
         if hostname:
-            result = await db.execute(select(Device).where(Device.hostname == hostname))
-            dev = result.scalars().first()
+            dev = first_compatible((await db.execute(select(Device).where(Device.hostname == hostname))).scalars())
             if dev:
                 return dev
 
@@ -145,7 +166,7 @@ class Correlator:
                         cast(Device.mac_addresses, String).contains(f'"{normalised}"')
                     )
                 )
-                dev = result.scalars().first()
+                dev = first_compatible(result.scalars())
                 if dev:
                     return dev
 

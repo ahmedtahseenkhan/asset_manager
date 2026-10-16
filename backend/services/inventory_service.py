@@ -367,11 +367,13 @@ def _same(a: Any, b: Any) -> bool:
 
 
 def _apply_summary(inv: DeviceInventory, values: Dict[str, Any], category: Optional[str],
-                   record: bool, changes: List[Change]) -> None:
+                   record: bool, changes: List[Change], fill_only: bool = False) -> None:
     for col, new in values.items():
         if new is None:
             continue   # unknown this time: keep what we had
         old = getattr(inv, col)
+        if fill_only and old is not None:
+            continue   # a non-authoritative source never overwrites what another source reported
         if old is not None and _same(old, new):
             continue   # rounding noise: keep the stored value so drift still adds up to a change
         if old is not None and record and category and col in _TRACKED[category]:
@@ -391,6 +393,74 @@ def _disk_encrypted(volumes: Iterable[DeviceVolume]) -> Optional[bool]:
     if not known:
         return None
     return all(known)
+
+
+# ── virtual machines (reported by their hypervisor host) ───────────────────
+_VM_VENDOR = {"vmware": ("VMware, Inc.", "VMware Virtual Platform"),
+              "hyperv": ("Microsoft Corporation", "Virtual Machine")}
+
+
+async def _sync_virtual_machines(db: AsyncSession, host: Device, vms, now: datetime) -> Dict[str, int]:
+    """Create/merge each guest's device (non-authoritative), record which host
+    it runs on, and keep automatic CMDB "hosts" edges between linked assets."""
+    from backend.models.asset_relationship import AssetRelationship
+    from backend.models.virtualization import VmPlacement
+
+    vm_ids = []
+    for vm in vms:
+        vendor, model = _VM_VENDOR.get(vm.platform, (None, None))
+        guest = (vm.guest_hostname or "").strip().rstrip(".")
+        hostname, fqdn = (guest.split(".", 1)[0], guest) if "." in guest else (guest or vm.name, None)
+        vm_report = InventoryReport(
+            hostname=hostname, fqdn=fqdn, os_name=vm.guest_os,
+            ip_addresses=vm.ip_addresses, mac_addresses=[m.upper() for m in vm.mac_addresses],
+            hardware={"hardware_uuid": vm.uuid, "is_virtual": True, "chassis_type": "vm", "manufacturer": vendor,
+                      "model": model, "cpu_cores": vm.vcpus, "cpu_logical": vm.vcpus, "ram_gb": vm.memory_gb,
+                      "disk_gb": vm.disk_gb},
+        )
+        # Without a BIOS UUID, VM names alone would merge same-named guests on different hosts
+        uid = None if vm.uuid else f"{vm.platform}-vm-{vm.instance_id or f'{host.id}-{vm.name}'}"
+        result = await InventoryService.ingest(db, vm.platform, vm_report, authoritative=False, source_uid=uid)
+        vm_id = result["device_id"]
+        if vm_id == host.id:
+            continue                              # a host can't run on itself (mis-matched identity)
+        vm_ids.append(vm_id)
+        placement = (await db.execute(select(VmPlacement).where(VmPlacement.vm_device_id == vm_id))).scalars().first()
+        if placement is None:
+            placement = VmPlacement(vm_device_id=vm_id)
+            db.add(placement)
+        placement.host_device_id, placement.platform, placement.vm_name = host.id, vm.platform, vm.name[:255]
+        placement.instance_id, placement.power_state = _clip(vm.instance_id, 64), _clip(vm.power_state, 16)
+        placement.guest_os, placement.vcpus = _clip(vm.guest_os, 255), vm.vcpus
+        placement.memory_gb, placement.disk_gb = vm.memory_gb, vm.disk_gb
+        placement.tools_status = _clip(vm.tools_status, 64)
+        placement.cluster, placement.datacenter = _clip(vm.cluster, 255), _clip(vm.datacenter, 255)
+        placement.last_seen = now
+
+    # Guests no longer on this host (deleted, or migrated to a host not yet reported)
+    await db.execute(delete(VmPlacement).where(VmPlacement.host_device_id == host.id,
+                                               VmPlacement.vm_device_id.notin_(vm_ids or [-1])))
+    await db.flush()
+
+    # CMDB: host asset --hosts--> VM asset, for guests whose devices are linked to assets.
+    # Only automatic edges (created_by NULL) are managed; manual edges are never touched.
+    host_asset = (await db.execute(select(Asset.id).where(Asset.device_id == host.id).limit(1))).scalar()
+    linked = 0
+    if vm_ids:
+        for vm_asset in (await db.execute(select(Asset.id).where(Asset.device_id.in_(vm_ids)))).scalars():
+            await db.execute(delete(AssetRelationship).where(
+                AssetRelationship.target_asset_id == vm_asset, AssetRelationship.relationship_type == "hosts",
+                AssetRelationship.created_by.is_(None), AssetRelationship.source_asset_id != (host_asset or -1)))
+            if host_asset is None or host_asset == vm_asset:
+                continue
+            exists_edge = (await db.execute(select(AssetRelationship.id).where(
+                AssetRelationship.source_asset_id == host_asset, AssetRelationship.target_asset_id == vm_asset,
+                AssetRelationship.relationship_type == "hosts"))).scalar()
+            if not exists_edge:
+                db.add(AssetRelationship(source_asset_id=host_asset, target_asset_id=vm_asset,
+                                         relationship_type="hosts", created_by=None))
+            linked += 1
+    return {"total": len(vm_ids), "cmdb_links": linked}
 
 
 # ── asset push ──────────────────────────────────────────────────────────────
@@ -425,10 +495,11 @@ def source_uid_for(source: str, report: InventoryReport) -> str:
     return f"{source}-{uid}"
 
 
-def _raw_record(source: str, report: InventoryReport, now: datetime) -> RawDeviceRecord:
+def _raw_record(source: str, report: InventoryReport, now: datetime,
+                source_uid: Optional[str] = None) -> RawDeviceRecord:
     hw = report.hardware
     return {
-        "source_uid": source_uid_for(source, report),
+        "source_uid": source_uid or source_uid_for(source, report),
         "hostname": report.hostname,
         "fqdn": report.fqdn,
         "ip_addresses": report.ip_addresses,
@@ -451,11 +522,18 @@ def _raw_record(source: str, report: InventoryReport, now: datetime) -> RawDevic
 class InventoryService:
     @staticmethod
     async def ingest(db: AsyncSession, source: str, report: InventoryReport,
-                     fallback_device_id: Optional[int] = None) -> Dict[str, Any]:
-        """Ingest one report. Flushes; the caller commits."""
+                     fallback_device_id: Optional[int] = None, authoritative: bool = True,
+                     source_uid: Optional[str] = None) -> Dict[str, Any]:
+        """Ingest one report. Flushes; the caller commits.
+
+        `authoritative=False` is for descriptions of a device from outside it
+        (a hypervisor describing its VM): no changes are recorded, and once the
+        device's own agent or scan has reported a section, that section is only
+        filled where it is empty, so the device itself stays the source of truth.
+        `source_uid` overrides the per-source identity derived from the report."""
         now = datetime.now(timezone.utc)
         device, created = await Correlator.upsert_device(
-            db, source, _raw_record(source, report, now), fallback_device_id=fallback_device_id)
+            db, source, _raw_record(source, report, now, source_uid), fallback_device_id=fallback_device_id)
 
         inv = (await db.execute(
             select(DeviceInventory).where(DeviceInventory.device_id == device.id)
@@ -482,14 +560,17 @@ class InventoryService:
                 "ram_gb": hw.ram_gb, "disk_gb": hw.disk_gb, "bios_vendor": _clip(hw.bios_vendor, 255),
                 "bios_version": _clip(hw.bios_version, 255), "bios_date": _clip(hw.bios_date, 32),
                 "motherboard": _clip(hw.motherboard, 255),
-            }, "hardware", "hardware" in seen, changes)
-            collected.append("hardware")
+            }, "hardware", authoritative and "hardware" in seen, changes,
+               fill_only=not authoritative and "hardware" in seen)
+            if authoritative:
+                collected.append("hardware")
         if report.os_name or report.os_version:
             _apply_summary(inv, {
                 "os_name": _clip(report.os_name, 255), "os_version": _clip(report.os_version, 255),
                 "os_build": _clip(report.os_build, 64), "architecture": _clip(report.architecture, 32),
-            }, "os", "os" in seen, changes)
-            collected.append("os")
+            }, "os", authoritative and "os" in seen, changes, fill_only=not authoritative and "os" in seen)
+            if authoritative:
+                collected.append("os")
         _apply_summary(inv, {
             "last_boot": parse_datetime(report.last_boot),
             "logged_in_user": _clip(report.logged_in_user, 255),
@@ -533,9 +614,14 @@ class InventoryService:
         if report.printers is not None:
             await _sync_printers(db, device.id, report, now, section("printers"))
 
-        inv.source = source
-        inv.collector_version = _clip(report.collector_version, 32) or inv.collector_version
-        inv.collected_at = now
+        vms = None
+        if report.virtual_machines is not None:
+            vms = await _sync_virtual_machines(db, device, report.virtual_machines, now)
+
+        if authoritative or inv.source is None:
+            inv.source = source
+            inv.collector_version = _clip(report.collector_version, 32) or inv.collector_version
+            inv.collected_at = now
         inv.sections_collected = sorted(seen | set(collected))
 
         for c in changes:
@@ -558,4 +644,5 @@ class InventoryService:
             "changes": len(changes),
             "warnings": sum(1 for c in changes if c.severity == "warning"),
             "asset_updated": asset_updated,
+            "virtual_machines": vms,
         }

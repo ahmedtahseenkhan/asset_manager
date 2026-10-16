@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getDeviceChanges, getDeviceSoftware } from '../../api';
-import type { DeviceChange, DeviceInventoryData, InventorySummary } from '../../types';
+import type { DeviceChange, DeviceInventoryData, DeviceVirtualization, InventorySummary, VmPlacementInfo } from '../../types';
 import { CHANGE_CATEGORY_LABELS, describeChange } from '../../lib/changes';
-import { AlertTriangle, CheckCircle2, HelpCircle, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, Layers, ShieldAlert, XCircle } from 'lucide-react';
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import clsx from 'clsx';
 
@@ -65,7 +66,8 @@ export function HardwareTab({ inv, serial }: { inv: DeviceInventoryData; serial?
           <Row label="Manufacturer" value={s.manufacturer} />
           <Row label="Model" value={s.model} />
           <Row label="Serial number" value={serial && <span className="font-mono">{serial}</span>} />
-          <Row label="Type" value={s.chassis_type && <span className="capitalize">{s.chassis_type}{s.is_virtual ? ' (virtual)' : ''}</span>} />
+          <Row label="Type" value={s.chassis_type && (s.chassis_type === 'vm' ? 'Virtual machine'
+            : <span className="capitalize">{s.chassis_type}{s.is_virtual ? ' (virtual)' : ''}</span>)} />
           <Row label="Processor" value={cpu} />
           <Row label="Memory" value={gb(s.ram_gb)} />
           <Row label="Disk capacity" value={gb(s.disk_gb)} />
@@ -396,3 +398,103 @@ export function ChangesTab({ deviceId }: { deviceId: number }) {
     </div>
   );
 }
+
+// ── Virtual machines ────────────────────────────────────────────────────────
+const POWER: Record<string, { label: string; cls: string }> = {
+  on: { label: 'Running', cls: 'text-emerald-400' },
+  off: { label: 'Off', cls: 'text-slate-500' },
+  suspended: { label: 'Suspended', cls: 'text-amber-400' },
+};
+const PLATFORM: Record<string, string> = { hyperv: 'Hyper-V', vmware: 'VMware' };
+
+function PowerState({ state }: { state: string | null }) {
+  const p = state ? POWER[state] : undefined;
+  return <span className={p?.cls ?? 'text-slate-400'}>{p?.label ?? state ?? '—'}</span>;
+}
+
+const allocation = (v: { vcpus: number | null; memory_gb: number | null }) =>
+  [v.vcpus != null && `${v.vcpus} vCPU`, gb(v.memory_gb)].filter(Boolean).join(' · ') || null;
+
+/** Overview card on a VM: which host it runs on. */
+export function VmHostCard({ host }: { host: VmPlacementInfo }) {
+  return (
+    <div className={CARD}>
+      <h2 className={clsx(H2, 'flex items-center gap-2')}><Layers className="w-4 h-4" /> Virtual machine</h2>
+      <p className="text-slate-200">
+        {PLATFORM[host.platform] ?? host.platform} guest <span className="font-medium">{host.vm_name}</span> on{' '}
+        <Link to={`/devices/${host.device_id}`} className="text-indigo-400 hover:text-indigo-300 font-medium">
+          {host.hostname ?? `device ${host.device_id}`}
+        </Link>
+        {host.cluster && <span className="text-slate-400"> · cluster {host.cluster}</span>}
+      </p>
+      <p className="text-xs text-slate-500 mt-1">
+        <PowerState state={host.power_state} />
+        {allocation(host) && ` · ${allocation(host)}`}
+        {host.disk_gb != null && ` · ${gb(host.disk_gb)} disk`}
+        {host.tools_status && ` · integration services: ${host.tools_status}`}
+        {host.last_seen && ` · reported ${formatDistanceToNowStrict(new Date(host.last_seen))} ago`}
+      </p>
+    </div>
+  );
+}
+
+/** Guests on a hypervisor host. */
+export function VirtualMachinesTab({ virt }: { virt: DeviceVirtualization }) {
+  const [runningOnly, setRunningOnly] = useState(false);
+  const base = runningOnly ? virt.guests.filter((g) => g.power_state === 'on') : virt.guests;
+  const { q, setQ, filtered } = useFilter(base, (g) => `${g.vm_name} ${g.hostname ?? ''} ${g.guest_os ?? ''} ${g.ip ?? ''}`);
+  const t = virt.totals;
+  return (
+    <div className={CARD}>
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+        <div>
+          <h2 className={clsx(H2, 'mb-0')}>Virtual machines ({t.running} running of {t.guests})</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Running guests use {t.vcpus_running} vCPU and {gb(t.memory_gb_running) ?? '0 GB'} of memory.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-400">
+            <input type="checkbox" checked={runningOnly} onChange={(e) => setRunningOnly(e.target.checked)} className="accent-indigo-500" />
+            Running only
+          </label>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter…" className={FILTER} />
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead><tr className="border-b border-slate-700/50">
+            <th className={TH}>Virtual machine</th><th className={TH}>State</th><th className={TH}>Guest OS</th>
+            <th className={TH}>Allocation</th><th className={TH}>Disk</th><th className={TH}>IP address</th>
+            <th className={TH}>Integration services</th><th className={TH}>Inventory</th>
+          </tr></thead>
+          <tbody className="divide-y divide-slate-700/40">
+            {filtered.map((g) => (
+              <tr key={g.device_id}>
+                <td className={TD}>
+                  <Link to={`/devices/${g.device_id}`} className="text-indigo-400 hover:text-indigo-300">{g.vm_name}</Link>
+                  {g.hostname && g.hostname.toLowerCase() !== g.vm_name.toLowerCase() && (
+                    <span className="block text-xs text-slate-500">{g.hostname}</span>
+                  )}
+                </td>
+                <td className={TD}><PowerState state={g.power_state} /></td>
+                <td className={clsx(TD, 'text-slate-400')}>{g.guest_os ?? '—'}</td>
+                <td className={clsx(TD, 'whitespace-nowrap')}>{allocation(g) ?? '—'}</td>
+                <td className={clsx(TD, 'whitespace-nowrap')}>{gb(g.disk_gb) ?? '—'}</td>
+                <td className={clsx(TD, 'font-mono text-xs')}>{g.ip ?? '—'}</td>
+                <td className={clsx(TD, 'text-slate-400')}>{g.tools_status ?? '—'}</td>
+                <td className={TD}>
+                  {g.inventoried
+                    ? <span className="text-emerald-400">Full</span>
+                    : <span className="text-slate-500" title="Only what the host reports. Install the agent or scan the guest for software, updates and security.">Host view only</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {filtered.length === 0 && <Empty>{virt.guests.length ? 'No matches.' : 'No virtual machines.'}</Empty>}
+    </div>
+  );
+}
+

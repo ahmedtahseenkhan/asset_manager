@@ -28,7 +28,7 @@ import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-AGENT_VERSION = "2.0.0"
+AGENT_VERSION = "2.1.0"
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────

@@ -128,6 +128,25 @@ class Printer(_Section):
     is_default: Optional[bool] = None
 
 
+class VirtualMachine(_Section):
+    """A guest reported by its hypervisor (vCenter/ESXi, Hyper-V)."""
+    name: str = Field(min_length=1, max_length=255)
+    platform: str                         # vmware | hyperv
+    uuid: _S = None                       # BIOS/SMBIOS UUID: matches the agent's hardware_uuid
+    instance_id: _S = None                # hypervisor's own id (vCenter instanceUuid, Hyper-V VMId)
+    power_state: _S = None                # on | off | suspended
+    guest_os: _S = None
+    guest_hostname: _S = None
+    vcpus: Optional[int] = None
+    memory_gb: Optional[float] = None
+    disk_gb: Optional[float] = None       # provisioned/committed storage
+    tools_status: _S = None               # VMware Tools / Hyper-V integration services
+    cluster: _S = None
+    datacenter: _S = None
+    ip_addresses: List[str] = Field(default_factory=list, max_length=64)
+    mac_addresses: List[str] = Field(default_factory=list, max_length=64)
+
+
 class InventoryReport(_Section):
     schema_version: int = SCHEMA_VERSION
     collector_version: _S = None      # agent / scanner build that produced this
@@ -156,6 +175,7 @@ class InventoryReport(_Section):
     network_adapters: Optional[List[NetworkAdapter]] = Field(default=None, max_length=256)
     monitors: Optional[List[Monitor]] = Field(default=None, max_length=64)
     printers: Optional[List[Printer]] = Field(default=None, max_length=256)
+    virtual_machines: Optional[List[VirtualMachine]] = Field(default=None, max_length=10_000)
     pending_reboot: Optional[bool] = None
 
     @classmethod

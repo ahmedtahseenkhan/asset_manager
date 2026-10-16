@@ -7,7 +7,7 @@ import type {
   CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
   DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet, SshHostKey, CredentialTestResult,
   ReportCatalog, ReportDefinition, ReportResult, LibraryReport, SavedReport, PinnedReport,
-  TopologyGraph, SwitchPort, DeviceLocation,
+  TopologyGraph, SwitchPort, DeviceLocation, DeviceVirtualization,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -244,6 +244,8 @@ export const cancelScanRun = (id: number) =>
 // ── Device inventory & change history ─────────────────
 export const getDeviceInventory = (id: number) =>
   apiClient.get<never, APIResponse<DeviceInventoryData>>(`/devices/${id}/inventory`);
+export const getDeviceVirtualization = (id: number) =>
+  apiClient.get<never, APIResponse<DeviceVirtualization>>(`/devices/${id}/virtualization`);
 export const getDeviceChanges = (id: number, params: { category?: string; limit?: number; offset?: number } = {}) =>
   apiClient.get<never, APIResponse<{ total: number; items: DeviceChange[] }>>(`/devices/${id}/changes`, { params });
 export const getRecentChanges = (params: { severity?: string; category?: string; days?: number; limit?: number } = {}) =>

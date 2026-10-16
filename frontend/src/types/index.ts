@@ -546,3 +546,18 @@ export interface DeviceLocation {
   switch_id: number; switch: string | null; port: string | null; port_alias: string | null; port_id: number;
   vlan: number | null; mac: string; uplink: boolean; macs_on_port: number; last_seen: string | null;
 }
+
+// ── Virtualisation ──────────────────────────────────────
+export type VmPowerState = 'on' | 'off' | 'suspended' | string;
+export interface VmPlacementInfo {
+  device_id: number; hostname: string | null; vm_name: string; platform: 'hyperv' | 'vmware' | string;
+  instance_id: string | null; power_state: VmPowerState | null; guest_os: string | null; vcpus: number | null;
+  memory_gb: number | null; disk_gb: number | null; tools_status: string | null; cluster: string | null;
+  datacenter: string | null; last_seen: string | null;
+}
+export interface VmGuest extends VmPlacementInfo { ip: string | null; inventoried: boolean }
+export interface DeviceVirtualization {
+  host: VmPlacementInfo | null;
+  guests: VmGuest[];
+  totals: { guests: number; running: number; vcpus_running: number; memory_gb_running: number };
+}

@@ -303,14 +303,31 @@ links create CMDB `hosts` relationships automatically.
 
 - [ ] 5.1 **VMware vCenter / ESXi** (vSphere REST via `httpx`; `pyvmomi` if REST
       lacks a field): clusters, hosts, VMs, datastores, power state, tools version.
-- [ ] 5.2 **Hyper-V** via the Phase 2 WinRM collector (`Get-VM`, host ↔ VM).
+      *Not implemented.* The ingest side it would feed is in place (5.2).
+- [x] 5.2 **Hyper-V** via the Windows agent and the Phase 2 WinRM collector
+      (same script, `Get-VM`, host ↔ VM).
 - [ ] 5.3 **Microsoft Intune + Entra ID** via Microsoft Graph (`httpx`; reuses
       the Azure app-registration pattern from the Defender connector).
 - [ ] 5.4 **AWS** (`boto3`: EC2, EBS, regions) and **Azure** (ARM REST via `httpx`):
       VMs and their tags/state. Optional — only useful where the server has
       internet access; clearly labelled as such for air-gapped customers.
-- [ ] 5.5 `is_virtual` / `platform` (physical, vmware, hyperv, aws, azure) on
-      devices; filters and reports by platform.
+- [~] 5.5 `is_virtual` / `platform` (physical, vmware, hyperv, aws, azure) on
+      devices; filters and reports by platform. *Done for VMs:* the Virtual
+      machines report entity has platform, host, power state and allocation.
+
+*Status:* 5.2 done. A host's report carries a `virtual_machines` section
+(agent 2.1.0). Each guest is ingested as its own device with
+`authoritative=False`: no change history, and once the guest's own agent or
+scan has reported a section, the host only fills gaps in it. Guests are
+matched by BIOS UUID (both byte orders, since hypervisors and guests can
+disagree), otherwise by a per-VM id, so a renamed VM keeps its device.
+`vm_placements` (migration 0009) records host, power state and allocation.
+Automatic CMDB `hosts` edges follow live migration; manual edges are never
+touched. The correlator no longer merges devices by name or MAC when both
+carry different hardware UUIDs (two VMs both called "test" stay two devices).
+UI: Virtual machines tab on hosts, host card on guests. Reports: a Virtual
+machines entity plus four built-ins. Verified with stubbed Hyper-V cmdlets in
+PowerShell 7 and live Postgres, **not yet on a real Hyper-V host**.
 
 ---
 

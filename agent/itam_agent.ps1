@@ -18,7 +18,7 @@ param(
     [switch]$DryRun
 )
 
-$AgentVersion = '2.0.0'
+$AgentVersion = '2.1.0'
 $ErrorActionPreference = 'Stop'
 
 # Run one collector. A collector that fails reports $null ("not collected") so
@@ -232,6 +232,71 @@ $pendingReboot = Invoke-Section 'pending_reboot' {
     ($null -ne (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue))
 }
 
+# -- Hyper-V guests (only on hosts with the Hyper-V role and module) ---------
+$virtualMachines = $null
+if (Get-Command Get-VM -ErrorAction SilentlyContinue) {
+    $virtualMachines = Invoke-Section 'virtual_machines' {
+        # BIOS GUID = the SMBIOS UUID the guest reports, so an agent inside the
+        # VM and this host's report describe the same device.
+        $biosById = @{}
+        try {
+            foreach ($s in Get-Cim Msvm_VirtualSystemSettingData -Namespace 'root/virtualization/v2') {
+                if ("$($s.VirtualSystemType)" -eq 'Microsoft:Hyper-V:System:Realized') {
+                    $biosById["$($s.ConfigurationID)".ToLower()] = "$($s.BIOSGUID)".Trim('{', '}')
+                }
+            }
+        } catch { }
+        # Running guests with integration services publish their FQDN and OS
+        # name to the host (KVP exchange).
+        $kvpById = @{}
+        try {
+            foreach ($k in Get-Cim Msvm_KvpExchangeComponent -Namespace 'root/virtualization/v2') {
+                $items = @{}
+                foreach ($x in @($k.GuestIntrinsicExchangeItems)) {
+                    try {
+                        $doc = [xml]$x
+                        $n = $doc.SelectSingleNode("/INSTANCE/PROPERTY[@NAME='Name']/VALUE")
+                        $v = $doc.SelectSingleNode("/INSTANCE/PROPERTY[@NAME='Data']/VALUE")
+                        if ($n -and $v) { $items[$n.InnerText] = $v.InnerText }
+                    } catch { }
+                }
+                $kvpById["$($k.SystemName)".ToLower()] = $items
+            }
+        } catch { }
+        $states = @{ Running = 'on'; Off = 'off'; Saved = 'suspended'; Paused = 'suspended' }
+        , @(Get-VM | ForEach-Object {
+            $vm = $_
+            $diskBytes = 0
+            foreach ($d in @(Get-VMHardDiskDrive -VM $vm -ErrorAction SilentlyContinue)) {
+                try { $diskBytes += [double](Get-VHD -Path $d.Path -ErrorAction Stop).Size } catch { }
+            }
+            $adapters = @(Get-VMNetworkAdapter -VM $vm -ErrorAction SilentlyContinue)
+            $memory = $vm.MemoryAssigned
+            if (-not $memory) { $memory = $vm.MemoryStartup }      # off VMs have nothing assigned
+            $state = "$($vm.State)"
+            $bios = $biosById["$($vm.VMId)".ToLower()]
+            $kvp = $kvpById["$($vm.VMId)".ToLower()]
+            if (-not $kvp) { $kvp = @{} }
+            @{
+                name           = $vm.Name
+                platform       = 'hyperv'
+                uuid           = $(if ($bios) { $bios } else { $null })
+                instance_id    = "$($vm.VMId)"
+                power_state    = $(if ($states.ContainsKey($state)) { $states[$state] } else { $state.ToLower() })
+                vcpus          = [int]$vm.ProcessorCount
+                memory_gb      = [math]::Round([double]$memory / 1GB, 1)
+                disk_gb        = $(if ($diskBytes) { [math]::Round($diskBytes / 1GB, 1) } else { $null })
+                guest_os       = $kvp['OSName']
+                guest_hostname = $kvp['FullyQualifiedDomainName']
+                tools_status   = $(if ("$($vm.IntegrationServicesState)") { "$($vm.IntegrationServicesState)" } else { $null })
+                ip_addresses   = @($adapters | ForEach-Object { $_.IPAddresses } | Where-Object { $_ -match '^\d+\.\d+\.\d+\.\d+$' })
+                mac_addresses  = @($adapters | ForEach-Object { "$($_.MacAddress)" } | Where-Object { $_ -match '^[0-9A-F]{12}$' -and $_ -ne '000000000000' } |
+                                 ForEach-Object { $_ -replace '(..)(?!$)', '$1:' })
+            }
+        })
+    }
+}
+
 # -- assemble ----------------------------------------------------------------
 $build = $null
 if ($os) {
@@ -278,6 +343,7 @@ $report = [ordered]@{
     network_adapters  = $nics
     monitors          = $monitors
     printers          = $printers
+    virtual_machines  = $virtualMachines
 }
 
 $json = $report | ConvertTo-Json -Depth 6 -Compress

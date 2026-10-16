@@ -6,6 +6,7 @@ from sqlalchemy import select
 from backend.models.agent import AgentToken
 from backend.models.inventory import DeviceChange
 from backend.models.notification import AlertRule
+from backend.services.agent_service import LATEST_AGENT_VERSION
 from backend.services.notification_service import NotificationService
 from backend.services.retention_service import RetentionService
 from tests.test_inventory_sections import BASE
@@ -64,12 +65,12 @@ async def test_endpoint_health_counts_match_device_filter(api):
 
 
 async def test_agent_fleet_flags_outdated_agents(api):
-    await _agent_report(api)
+    await _agent_report(api, collector_version=LATEST_AGENT_VERSION)
     await _agent_report(api, hostname="OLD-PC", collector_version="1.0.0",
                         hardware={**BASE["hardware"], "serial_number": "OLD-1"})
     fleet = (await api.get("/api/agents/fleet")).json()["data"]
     by_host = {a["hostname"]: a for a in fleet["agents"]}
-    assert fleet["latest_version"] == "2.0.0"
+    assert fleet["latest_version"] == LATEST_AGENT_VERSION
     assert by_host["PC-42"]["outdated"] is False and by_host["OLD-PC"]["outdated"] is True
 
 
