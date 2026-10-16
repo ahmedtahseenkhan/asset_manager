@@ -235,25 +235,35 @@ bundled-OpenSSL CVE-2024-12797).
 
 ## Phase 3 — Report builder, exports, scheduled reports
 
-- [ ] 3.1 **Query compiler**: user picks an entity (assets, devices, software,
+- [x] 3.1 **Query compiler**: user picks an entity (assets, devices, software,
       patches, services, local accounts, security, vulnerabilities, changes,
       contracts, entitlements), columns, filters (`=, !=, contains, <, >, in,
       is empty, older than N days`), sort, group-by + count. Compiled to SQLAlchemy
       over a **whitelist of fields and predefined joins** — no raw SQL.
-- [ ] 3.2 `saved_reports` table (owner, shared flag, definition JSON, chart type).
-- [ ] 3.3 Built-in report library (~25), e.g.: devices without AV · encryption
+- [x] 3.2 `saved_reports` table (owner, shared flag, definition JSON, chart type).
+- [x] 3.3 Built-in report library (~25), e.g.: devices without AV · encryption
       off · missing patch KB… · not seen in 30 days · local admins per device ·
       low disk space · software X installed · unlicensed software · EOL operating
       systems · warranty expiring in 90 days · changes in last 7 days.
-- [ ] 3.4 Exports: CSV and XLSX (`openpyxl` already a dependency) for every
+- [x] 3.4 Exports: CSV and XLSX (`openpyxl` already a dependency) for every
       report **and** every existing list page (assets, devices, software, …).
-- [ ] 3.5 Scheduled reports: cron + recipients, emailed as XLSX via the existing
+- [x] 3.5 Scheduled reports: cron + recipients, emailed as XLSX via the existing
       SMTP relay.
-- [ ] 3.6 UI: report builder page with live preview, table + optional chart,
+- [x] 3.6 UI: report builder page with live preview, table + optional chart,
       "pin to dashboard" widget.
 
 **Done when:** a non-technical user can build "Windows laptops in Finance with
 BitLocker off", save it, export to Excel, and get it emailed weekly.
+
+*Status:* done. 13 entities (devices — including the linked asset's
+department/owner/criticality — software, updates, services, local accounts,
+antivirus, disks, monitors, changes, assets, vulnerabilities, contracts,
+licences); 31 built-in reports, all verified on Postgres; saved reports are
+private, shared or pinned, owner/admin editable, scheduled email admin-only.
+Exports neutralise spreadsheet formulas in text taken from inventory. The
+Devices and Assets list pages export everything matching their filters. Not
+done: exports on the Software (SAM) page; per-user dashboard pins (pins are
+per report).
 
 ---
 

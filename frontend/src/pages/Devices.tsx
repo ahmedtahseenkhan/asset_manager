@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getDevices } from '../api';
+import { exportReport, getDevices } from '../api';
+import { devicesExport } from '../lib/listExports';
+import { errorText } from '../lib/errors';
 import type { Device } from '../types';
 import {
   useReactTable,
@@ -18,32 +20,6 @@ const HEALTH_LABELS: Record<string, string> = {
   pending_reboot: 'Reboot pending', admin_sprawl: '3+ local admins', stale_inventory: 'No inventory for 7+ days',
 };
 
-function exportCsv(devices: Device[]) {
-  const headers = ['Hostname', 'FQDN', 'IP Addresses', 'OS', 'OS Version', 'Domain', 'Status', 'Last Seen', 'Sources'];
-  const rows = devices.map((d) => [
-    d.hostname ?? '',
-    d.fqdn ?? '',
-    (d.ip_addresses ?? []).join('; '),
-    d.os_name ?? '',
-    d.os_version ?? '',
-    d.domain ?? '',
-    d.status,
-    d.last_seen ? format(new Date(d.last_seen), 'yyyy-MM-dd HH:mm') : '',
-    (d.sources ?? []).map((s) => s.source_name).join('; '),
-  ]);
-
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `devices_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 const STATUS_STYLES: Record<string, string> = {
   active:   'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
@@ -64,6 +40,8 @@ export default function Devices() {
   
   // Create a separate state for the submitted search query
   const [submittedSearch, setSubmittedSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   // Endpoint-health filter, set by the dashboard tiles (?health=no_antivirus)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -186,14 +164,24 @@ export default function Devices() {
           )}
         </div>
         
-        <button
-          onClick={() => exportCsv(data)}
-          disabled={data.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 text-slate-200 rounded-lg transition-colors"
-        >
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={async () => {
+              setExportError('');
+              setExporting(true);
+              try {
+                await exportReport(devicesExport({ search: submittedSearch, os: osFilter, health }), 'Devices');
+              } catch (e) { setExportError(errorText(e)); } finally { setExporting(false); }
+            }}
+            disabled={total === 0 || exporting}
+            title="Exports every device matching the current search and filters"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 text-slate-200 rounded-lg transition-colors"
+          >
             <Download className="w-4 h-4" />
-            Export CSV
-        </button>
+            {exporting ? 'Exporting…' : 'Export to Excel'}
+          </button>
+          {exportError && <p className="text-xs text-rose-400 max-w-xs text-right">{exportError}</p>}
+        </div>
       </div>
 
       <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">

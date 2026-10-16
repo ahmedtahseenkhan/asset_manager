@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAssets, getUnlinkedDevices } from '../api';
-import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, GitMerge } from 'lucide-react';
+import { exportReport, getAssets, getUnlinkedDevices } from '../api';
+import { assetsExport } from '../lib/listExports';
+import { errorText } from '../lib/errors';
+import { Boxes, Plus, Search, ChevronLeft, ChevronRight, Pencil, GitMerge, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { ENUM_BADGE } from '../lib/assetSchema';
@@ -37,6 +39,7 @@ export default function Assets() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [state, setState] = useState('');
+  const [exportError, setExportError] = useState('');
 
   const size = 25;
   const { data: res, isLoading } = useQuery({
@@ -71,7 +74,22 @@ export default function Assets() {
           <h1 className="text-2xl font-semibold tracking-tight text-slate-50">Assets</h1>
           <p className="text-sm text-slate-500 mt-1">Managed inventory — <span className="tabular-nums">{total}</span> record{total !== 1 ? 's' : ''}.</p>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex gap-2.5 items-start">
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={async () => {
+                setExportError('');
+                try { await exportReport(assetsExport({ search, category, state }), 'Assets'); }
+                catch (e) { setExportError(errorText(e)); }
+              }}
+              disabled={total === 0}
+              title="Exports every asset matching the current search and filters"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800/70 hover:border-slate-600 disabled:opacity-40 text-slate-200 text-sm font-medium rounded-lg border border-slate-700/60 transition-colors"
+            >
+              <Download className="w-4 h-4 text-slate-400" /> Export to Excel
+            </button>
+            {exportError && <p className="text-xs text-rose-400 max-w-xs text-right">{exportError}</p>}
+          </div>
           <button
             onClick={() => navigate('/assets/reconcile')}
             className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800/70 hover:border-slate-600 text-slate-200 text-sm font-medium rounded-lg border border-slate-700/60 transition-colors"

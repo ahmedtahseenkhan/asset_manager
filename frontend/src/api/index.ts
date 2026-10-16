@@ -6,6 +6,7 @@ import type {
   SmtpSettingsOut, AlertRule, NotificationLogEntry,
   CredentialTypeSpec, ScanCredential, ScanTarget, ScanRun, ScanRunDetail,
   DeviceInventoryData, DeviceChange, EndpointHealth, AgentFleet, SshHostKey, CredentialTestResult,
+  ReportCatalog, ReportDefinition, ReportResult, LibraryReport, SavedReport, PinnedReport,
 } from '../types';
 
 export const getDashboardSummary = () => {
@@ -250,3 +251,41 @@ export const getEndpointHealth = () =>
   apiClient.get<never, APIResponse<EndpointHealth>>('/dashboard/endpoint-health');
 export const getAgentFleet = () =>
   apiClient.get<never, APIResponse<AgentFleet>>('/agents/fleet');
+
+// ── Report builder ─────────────────────────────────────
+export const getReportCatalog = () => apiClient.get<never, APIResponse<ReportCatalog>>('/reports/catalog');
+export const getReportLibrary = () => apiClient.get<never, APIResponse<LibraryReport[]>>('/reports/library');
+export const runReport = (definition: ReportDefinition, page = 1, size = 100) =>
+  apiClient.post<never, APIResponse<ReportResult>>('/reports/run', { definition, page, size });
+export const getSavedReports = () => apiClient.get<never, APIResponse<SavedReport[]>>('/reports/saved');
+export const createSavedReport = (body: { name: string; description?: string | null; definition: ReportDefinition; shared?: boolean; pinned?: boolean }) =>
+  apiClient.post<never, APIResponse<SavedReport>>('/reports/saved', body);
+export const updateSavedReport = (id: number, body: Record<string, unknown>) =>
+  apiClient.patch<never, APIResponse<SavedReport>>(`/reports/saved/${id}`, body);
+export const deleteSavedReport = (id: number) => apiClient.delete<never, APIResponse<boolean>>(`/reports/saved/${id}`);
+export const sendSavedReport = (id: number) => apiClient.post<never, APIResponse<string>>(`/reports/saved/${id}/send`);
+export const getPinnedReports = () => apiClient.get<never, APIResponse<PinnedReport[]>>('/reports/pinned');
+
+/** Mirrors backend reporting.export.filename so downloads are named the same way. */
+export function reportFilename(name: string, ext: string) {
+  const slug = name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'report';
+  return `${slug}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function exportReport(definition: ReportDefinition, name: string, format: 'xlsx' | 'csv' = 'xlsx') {
+  const blob = await apiClient.post<never, Blob>('/reports/export', { definition, name, format }, { responseType: 'blob' });
+  saveBlob(blob, reportFilename(name, format));
+}
+
+export async function exportSavedReport(id: number, name: string, format: 'xlsx' | 'csv' = 'xlsx') {
+  const blob = await apiClient.get<never, Blob>(`/reports/saved/${id}/export`, { params: { format }, responseType: 'blob' });
+  saveBlob(blob, reportFilename(name, format));
+}

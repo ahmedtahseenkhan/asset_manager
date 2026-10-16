@@ -12,7 +12,7 @@ import logging
 import smtplib
 from datetime import date, datetime, time, timedelta, timezone
 from email.message import EmailMessage
-from typing import List, Optional
+from typing import List, Optional, Sequence, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,12 +26,20 @@ from backend.models.notification import ALERT_RULE_TYPES, AlertRule, Notificatio
 logger = logging.getLogger(__name__)
 
 
-def _send_sync(smtp: SmtpSettings, subject: str, body: str, recipients: List[str]) -> None:
+# (filename, content, MIME type) — e.g. a scheduled report's spreadsheet
+Attachment = Tuple[str, bytes, str]
+
+
+def _send_sync(smtp: SmtpSettings, subject: str, body: str, recipients: List[str],
+               attachments: Sequence[Attachment] = ()) -> None:
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = smtp.from_address
     msg["To"] = ", ".join(recipients)
     msg.set_content(body)
+    for name, content, mime in attachments:
+        maintype, _, subtype = mime.partition("/")
+        msg.add_attachment(content, maintype=maintype, subtype=subtype, filename=name)
 
     with smtplib.SMTP(smtp.host, smtp.port, timeout=15) as client:
         if smtp.use_starttls:
@@ -61,14 +69,15 @@ class NotificationService:
         return [existing[t] for t in ALERT_RULE_TYPES]
 
     @staticmethod
-    async def send_email(db: AsyncSession, subject: str, body: str, recipients: List[str]) -> None:
+    async def send_email(db: AsyncSession, subject: str, body: str, recipients: List[str],
+                         attachments: Sequence[Attachment] = ()) -> None:
         """Raises on failure; caller decides whether to log."""
         smtp = await NotificationService.get_smtp(db)
         if not smtp or not smtp.enabled:
             raise RuntimeError("SMTP relay is not configured or disabled")
         if not recipients:
             raise RuntimeError("No recipients configured")
-        await asyncio.to_thread(_send_sync, smtp, subject, body, recipients)
+        await asyncio.to_thread(_send_sync, smtp, subject, body, recipients, attachments)
 
     # ── item collectors, one per rule type ────────────────────────────────
 

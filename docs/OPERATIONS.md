@@ -176,15 +176,36 @@ counted and reported. Per-asset findings appear on the asset detail page.
 
 ## 4. Reports
 
-**Reports** page:
-- **Capital by category / department** — total spend from `purchase_cost`.
-- **Lifecycle forecast (12 mo)** — warranties and EOL/EOS dates expired or coming
-  due, with the upcoming list. Drives refresh planning.
-- **Compliance & governance** — criticality and data-classification distribution,
-  and the % of assets with an owner and a review date.
+**Reports** has four tabs (the builder needs licence module `reporting`):
 
-Fill in `purchase_cost`, `warranty_end`, `eol_eos_date`, and the governance
-fields (via the asset form or **bulk edit**) to make these meaningful.
+- **Overview** — capital by category/department, lifecycle forecast
+  (warranty and EOL/EOS), compliance & governance. Fill in `purchase_cost`,
+  `warranty_end`, `eol_eos_date` and the governance fields to make these useful.
+- **Library** — 31 ready-made reports: devices without working antivirus,
+  firewall off, unencrypted disks, 3+ local admins, remote-access tools,
+  missing a specific update, Windows builds, low RAM / low disk space, devices
+  not seen in 30 days, warranties ending in 90 days, assets past end of life,
+  contracts and licences expiring, open critical vulnerabilities, and more.
+  Opening one loads it into the builder, where it can be adjusted and saved.
+- **Builder** — choose the data (devices, installed software, updates,
+  services, local accounts, antivirus, disks, monitors, device changes, assets,
+  vulnerabilities, contracts, licences), add filters (match all or any), pick
+  and order columns, or **group by** a field to get counts with a bar or pie
+  chart. The preview updates as you edit. Device reports include the linked
+  asset's tag, department, location, owner and criticality, so "Windows laptops
+  in Finance with BitLocker off" is three filters. **Excel** / **CSV** export
+  every matching row (up to 100,000).
+- **Saved reports** — your reports plus those shared with everyone.
+  Owners (and admins) can rename, share, pin to the dashboard, or delete.
+  Administrators can **email a report on a schedule** (daily, weekly, monthly
+  or cron) to a list of recipients as an Excel or CSV attachment, or send it now;
+  the last result shows in the list and in Notifications → log.
+
+The **Devices** and **Assets** pages have **Export to Excel**, which exports
+every row matching the page's search and filters (not just the visible page).
+
+Exports write text that starts with `=`, `+`, `-` or `@` with a leading
+apostrophe, so values reported by endpoints can't run as spreadsheet formulas.
 
 ---
 

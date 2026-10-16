@@ -453,3 +453,65 @@ export interface CredentialTestResult {
   ok: boolean; host: string; method?: string; hostname?: string | null; os?: string | null;
   vendor?: string | null; note?: string; error_code?: string; message?: string;
 }
+
+// ── Report builder ───────────────────────────────────
+export type ReportFieldType = 'string' | 'number' | 'date' | 'datetime' | 'bool' | 'enum' | 'list' | 'relation';
+
+export interface ReportField {
+  key: string; label: string; type: ReportFieldType; choices: string[] | null; filter_only: boolean;
+}
+
+export interface ReportEntity {
+  key: string; label: string; category: string; description: string; licensed: boolean;
+  default_columns: string[]; default_sort: string; link: 'device' | 'asset' | null; fields: ReportField[];
+}
+
+export interface ReportOperator { op: string; label: string; value: 'text' | 'list' | 'choice' | 'choices' | 'number' | 'date' | 'days' | 'none' }
+
+export interface ReportCatalog { entities: ReportEntity[]; operators: Record<ReportFieldType, ReportOperator[]> }
+
+export interface ReportFilter { field: string; op: string; value: string | number | null }
+
+export interface ReportDefinition {
+  entity: string;
+  columns: string[];
+  filters: ReportFilter[];
+  match: 'all' | 'any';
+  search?: string | null;
+  group_by: string | null;
+  sort: string | null;
+  sort_dir: 'asc' | 'desc';
+  chart: 'none' | 'bar' | 'pie';
+}
+
+export interface ReportRowsResult {
+  kind: 'rows'; total: number; page: number; size: number; link: 'device' | 'asset' | null;
+  columns: { key: string; label: string; type: ReportFieldType }[];
+  rows: Record<string, unknown>[];
+  summary: [string, string][];
+}
+
+export interface ReportGroupsResult {
+  kind: 'groups'; total: number;
+  group_field: { key: string; label: string; type: ReportFieldType };
+  groups: { value: string | number | boolean | null; count: number }[];
+  summary: [string, string][];
+}
+
+export type ReportResult = ReportRowsResult | ReportGroupsResult;
+
+export interface LibraryReport {
+  id: string; category: string; name: string; description: string; licensed: boolean; definition: ReportDefinition;
+}
+
+export interface SavedReport {
+  id: number; name: string; description: string | null; definition: ReportDefinition;
+  owner_id: number | null; shared: boolean; pinned: boolean; can_edit: boolean;
+  schedule_cron: string | null; recipients: string[]; export_format: 'xlsx' | 'csv';
+  last_sent_at: string | null; last_status: string | null;
+}
+
+export interface PinnedReport {
+  id: number; name: string; chart: 'none' | 'bar' | 'pie';
+  result: ReportResult | { kind: 'error'; message: string };
+}

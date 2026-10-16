@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { getDashboardSummary, getEndpointHealth, getRecentChanges } from '../api';
-import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight, HeartPulse, Radar } from 'lucide-react';
+import { getDashboardSummary, getEndpointHealth, getPinnedReports, getRecentChanges } from '../api';
+import { formatCell } from '../components/reports/definition';
+import { Laptop, Activity, MoonStar, RefreshCw, ShieldAlert, ArrowUpRight, HeartPulse, Radar, Pin } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { describeChange } from '../lib/changes';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -113,6 +114,61 @@ function EndpointHealthPanel() {
   );
 }
 
+function PinnedReportsPanel() {
+  const { data } = useQuery({ queryKey: ['pinned-reports'], queryFn: getPinnedReports, retry: false });
+  const pinned = data?.data ?? [];
+  if (pinned.length === 0) return null;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {pinned.map((p) => (
+        <Link key={p.id} to={`/reports?saved=${p.id}`}
+          className="group bg-slate-800/70 backdrop-blur-sm p-5 rounded-xl border border-slate-700/60 hover:border-slate-600 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2"><Pin className="w-3.5 h-3.5 text-indigo-400" />{p.name}</h2>
+            <ArrowUpRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300" />
+          </div>
+          {p.result.kind === 'error' && <p className="text-sm text-rose-400">{p.result.message}</p>}
+          {p.result.kind === 'groups' && (() => {
+            const groups = p.result.groups.map((g) => ({ name: formatCell(g.value, p.result.kind === 'groups' ? p.result.group_field.type : 'string'), value: g.count }));
+            return (
+              <div className="h-44">
+                <ResponsiveContainer width="100%" height="100%">
+                  {p.chart === 'pie' ? (
+                    <PieChart>
+                      <Pie data={groups} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2} stroke="none">
+                        {groups.map((_g, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip {...TOOLTIP} />
+                    </PieChart>
+                  ) : (
+                    <BarChart data={groups} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                      <XAxis type="number" hide allowDecimals={false} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                      <Tooltip {...TOOLTIP} cursor={{ fill: 'rgba(34,197,94,0.08)' }} />
+                      <Bar dataKey="value" fill="#22c55e" radius={[0, 4, 4, 0]} maxBarSize={14} />
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
+          {p.result.kind === 'rows' && (
+            <>
+              <p className="text-3xl font-semibold text-slate-50 tabular-nums">{p.result.total.toLocaleString()}</p>
+              <ul className="mt-2 space-y-1">
+                {p.result.rows.map((row, i) => {
+                  const first = p.result.kind === 'rows' ? p.result.columns[0] : null;
+                  return first ? <li key={i} className="text-sm text-slate-400 truncate">{formatCell(row[first.key], first.type)}</li> : null;
+                })}
+              </ul>
+            </>
+          )}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: res, isLoading: loading, refetch, isFetching } = useQuery({
@@ -145,6 +201,8 @@ export default function Dashboard() {
       </div>
 
       <EndpointHealthPanel />
+
+      <PinnedReportsPanel />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* OS distribution */}
